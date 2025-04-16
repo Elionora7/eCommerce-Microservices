@@ -1,0 +1,20 @@
+@"
+# .NET
+[Bb]in/
+[Oo]bj/
+*.user
+*.suo
+*.cache
+
+# IDE
+.vs/
+.idea/
+
+# Database
+*.mdf
+*.ldf
+__ScriptsMigration/
+
+# Misc
+.DS_Store
+"@ | Out-File -FilePath .gitignore -Encoding utf8
