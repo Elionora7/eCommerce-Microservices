@@ -1,0 +1,57 @@
+services:
+ mysql-container:
+  image: mysql:8.3.0
+  environment:
+   MYSQL_ROOT_PASSWORD: P@ssw0rd
+   MYSQL_DATABASE: ecommerceproductsdatabase
+   MYSQL_USER: admin
+   MYSQL_PASSWORD: P@ssw0rd
+  ports:
+   - "3306:3306"
+  volumes:
+   - ./mysql-init:/docker-entrypoint-initdb.d
+  networks:
+   - ecommerce-network
+  container_name: mysql-db
+
+ products-microservice:
+  image: elionora/ecommerce-products:v1.0
+  environment:
+   MYSQL_HOST: mysql-container
+   MYSQL_PORT: 3306
+   MYSQL_DATABASE: ecommerceproductsdatabase
+   MYSQL_USER: admin
+   MYSQL_PASSWORD: P@ssw0rd
+  ports:
+   - "8080:8080"
+  networks:
+   - ecommerce-network
+  depends_on:
+    - mysql-container
+
+ postgres-container:
+  image: postgres:16.1
+  environment:
+   - POSTGRES_USER=postgres
+   - POSTGRES_PASSWORD=P@ssw0rd
+   - POSTGRES_DB=eCommerceUsers
+  ports:
+   - "5432:5432"
+  volumes:
+   - ./postgres-init:/docker-entrypoint-initdb.d
+  networks:
+   - ecommerce-network
+
+ users-microservice:
+  image: elionora/ecommerce-users:v1.0
+  environment:
+   - POSTGRES_HOST=postgres-container
+   - POSTGRES_PASSWORD=P@ssw0rd
+  ports:
+   - "9090:9090"
+  networks:
+   - ecommerce-network
+
+networks:
+ ecommerce-network:
+  driver: bridge
