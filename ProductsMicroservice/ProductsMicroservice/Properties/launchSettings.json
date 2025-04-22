@@ -3,36 +3,57 @@
     "http": {
       "commandName": "Project",
       "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "MYSQL_HOST":"localhost",
+            "MYSQL_PORT":"3306",
+            "MYSQL_DATABASE":"ecommerceproductsdatabase",
+            "MYSQL_USER":"root",
+            "MYSQL_PASSWORD":"P@ssw0rd"
+        },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5081"
     },
     "https": {
       "commandName": "Project",
       "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      },
+        "environmentVariables": {
+        "ASPNETCORE_ENVIRONMENT": "Development",
+        "MYSQL_HOST": "localhost",
+        "MYSQL_PORT": "3306",
+        "MYSQL_DATABASE": "ecommerceproductsdatabase",
+        "MYSQL_USER": "root",
+        "MYSQL_PASSWORD": "P@ssw0rd"
+        },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7254;http://localhost:5081"
     },
     "IIS Express": {
       "commandName": "IISExpress",
       "launchBrowser": true,
-      "environmentVariables": {
-        "ASPNETCORE_ENVIRONMENT": "Development"
-      }
+        "environmentVariables": {
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "MYSQL_HOST": "localhost",
+            "MYSQL_PORT": "3306",
+            "MYSQL_DATABASE": "ecommerceproductsdatabase",
+            "MYSQL_USER": "root",
+            "MYSQL_PASSWORD": "P@ssw0rd"
+
+        }
     },
     "Container (Dockerfile)": {
       "commandName": "Docker",
       "launchBrowser": true,
       "launchUrl": "{Scheme}://{ServiceHost}:{ServicePort}",
-      "environmentVariables": {
-        "ASPNETCORE_HTTPS_PORTS": "8081",
-        "ASPNETCORE_HTTP_PORTS": "8080"
-      },
+        "environmentVariables": {
+            "ASPNETCORE_HTTPS_PORTS": "8081",
+            "ASPNETCORE_HTTP_PORTS": "8080",
+            "MYSQL_HOST": "localhost",
+            "MYSQL_PORT": "3306",
+            "MYSQL_DATABASE": "ecommerceproductsdatabase",
+            "MYSQL_USER": "root",
+            "MYSQL_PASSWORD": "P@ssw0rd"
+        },
       "publishAllPorts": true,
       "useSSL": true
     }

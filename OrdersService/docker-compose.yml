@@ -45,7 +45,7 @@ services:
     - MYSQL_USER=root
     - MYSQL_PASSWORD=P@ssw0rd
    ports:
-    - "6000:8080"
+    - "6002:8080"
    networks:
     - products-mysql-network
     - ecommerce-network
@@ -58,7 +58,7 @@ services:
    environment:
     - MYSQL_ROOT_PASSWORD=P@ssw0rd
    ports:
-    - "3307:3306"
+    - "3306:3306"
    volumes:
     - ../mysql-init:/docker-entrypoint-initdb.d
    networks:

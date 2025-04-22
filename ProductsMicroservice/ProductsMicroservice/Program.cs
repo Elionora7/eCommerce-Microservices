@@ -4,10 +4,31 @@ using eCommerce.ProductsService.DataAccessLayer;
 using FluentValidation.AspNetCore;
 using eCommerce.ProductsMicroService.API.APIEndpoints;
 using System.Text.Json.Serialization;
-using Microsoft.AspNetCore.Builder;
+using Microsoft.EntityFrameworkCore;
+using eCommerce.DataAccessLayer.Context;
 
 
 var builder = WebApplication.CreateBuilder(args);
+
+// Get environment variables
+var mysqlHost = Environment.GetEnvironmentVariable("MYSQL_HOST") ?? "localhost";
+var mysqlPort = Environment.GetEnvironmentVariable("MYSQL_PORT") ?? "3306";
+var mysqlDb = Environment.GetEnvironmentVariable("MYSQL_DATABASE") ?? "ecommerceproductsdatabase";
+var mysqlUser = Environment.GetEnvironmentVariable("MYSQL_USER") ?? "root";
+var mysqlPwd = Environment.GetEnvironmentVariable("MYSQL_PASSWORD") ?? "P@ssw0rd";
+
+// Build connection string manually
+var connectionString = $"Server={mysqlHost};Port={mysqlPort};Database={mysqlDb};User ID={mysqlUser};Password={mysqlPwd}";
+
+// Inject into configuration
+builder.Configuration["ConnectionStrings:DefaultConnection"] = connectionString;
+
+builder.Services.AddDbContext<ApplicationDbContext>(options =>
+    options.UseMySql(
+        builder.Configuration.GetConnectionString("DefaultConnection"),
+        new MySqlServerVersion(new Version(8, 0, 0)) // Adjust version if needed
+    )
+);
 
 //Add DAL and BLL services
 builder.Services.AddDataAccessLayer(builder.Configuration);
