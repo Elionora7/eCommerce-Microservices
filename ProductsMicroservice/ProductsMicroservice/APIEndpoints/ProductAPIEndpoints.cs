@@ -18,15 +18,18 @@ public static class ProductAPIEndpoints
         });
 
 
-        //GET /api/products/search/product-id/00000000-0000-0000-0000-000000000000
+        //GET /api/products/search/product-id/{ProductId}
         app.MapGet("/api/products/search/product-id/{ProductID:guid}", async (IProductsService productsService, Guid ProductID) =>
         {
+            await Task.Delay(100);
+            throw new NotImplementedException();
+
             ProductResponse? product = await productsService.GetProductByCondition(temp => temp.ProductID == ProductID);
             return Results.Ok(product);
         });
 
 
-        //GET /api/products/search/xxxxxxxxxxxxxxxxxx
+        //GET /api/products/search/xxxxxxxxxxxxxxxxx
         app.MapGet("/api/products/search/{SearchString}", async (IProductsService productsService, string SearchString) =>
         {
             List<ProductResponse?> productsByProductName = await productsService.GetProductsByCondition(temp => temp.ProductName != null && temp.ProductName.Contains(SearchString, StringComparison.OrdinalIgnoreCase));
@@ -89,7 +92,7 @@ public static class ProductAPIEndpoints
         });
 
 
-        //DELETE /api/products/xxxxxxxxxxxxxxxxxxx
+        //DELETE /api/products/xxxxxxxxxxxxxxxxxx
         app.MapDelete("/api/products/{ProductID:guid}", async (IProductsService productsService, Guid ProductID) =>
         {
             bool isDeleted = await productsService.DeleteProduct(ProductID);
