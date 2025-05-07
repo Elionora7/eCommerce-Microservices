@@ -28,7 +28,7 @@ public class PollyPolicies : IPollyPolicies
                 $"The remaining requests will be blocked!");
         },
        onReset: () => {
-           _logger.LogInformation($"Circuit breaker closed.The subsequent requests will be allowed");
+           _logger.LogInformation($"Circuit breaker closed.The subsequent requests will be allowed!");
        });
 
         return policy;
@@ -42,7 +42,7 @@ public class PollyPolicies : IPollyPolicies
          sleepDurationProvider: retryAttempt => TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)), // Delay between retries
          onRetry: (outcome, timespan, retryAttempt, context) =>
          {
-             _logger.LogInformation($"Retry {retryAttempt} after {timespan.TotalSeconds} seconds.");
+             _logger.LogInformation($"Retry {retryAttempt} after {timespan.TotalSeconds} seconds!");
          });
 
         return policy;

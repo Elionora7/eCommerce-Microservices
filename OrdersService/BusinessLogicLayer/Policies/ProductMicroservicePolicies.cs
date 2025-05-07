@@ -31,8 +31,9 @@ public class ProductMicroservicePolicies : IProductMicroservicePolicies
             UnitPrice: 0,
             QuantityInStock: 0
             );
-
-              var response = new HttpResponseMessage(System.Net.HttpStatusCode.OK)
+              //change the status code from ok(200) to service unavailable(503)
+              //in order to exclude the cache result from the fallback response
+              var response = new HttpResponseMessage(System.Net.HttpStatusCode.ServiceUnavailable)
               {
                   Content = new StringContent(JsonSerializer.Serialize(product), Encoding.UTF8, "application/json")
               };
@@ -49,7 +50,7 @@ public class ProductMicroservicePolicies : IProductMicroservicePolicies
           maxParallelization:2, //Allow up to 2 concurrent requests
           maxQueuingActions:30, //Queue up to 30 additional requests
           onBulkheadRejectedAsync:(context) => {
-              _logger.LogWarning("BulkheadIsolation triggered.Can't send any more requests since the queue is full!");
+              _logger.LogWarning("Bulkhead Isolation triggered.Can't send any more requests since the queue is full!");
 
               throw new BulkheadRejectedException("Bulkhead queue is full!");
           }
