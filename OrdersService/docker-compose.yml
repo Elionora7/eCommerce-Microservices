@@ -1,4 +1,4 @@
-version: '3.4'
+
 
 services:
   ordersmicroserviceapi:
@@ -11,9 +11,9 @@ services:
     - MONGODB_HOST=mongodb-container
     - MONGODB_PORT=27017
     - MONGODB_DATABASE=OrdersDatabase
-    - UserMicroServiceName=users-microservice
-    - UserMicroServicePort=9090
-    - ProductMicroServiceName=products-microservice
+    - UserMicroServiceName=apigateway
+    - UserMicroServicePort=8080
+    - ProductMicroServiceName=apigateway
     - ProductMicroServicePort=8080
     - REDIS_HOST=redis
     - REDIS_PORT=6379
@@ -107,6 +107,18 @@ services:
     - c:/microservices/redis-cache:/data
    networks:
     - ecommerce-network
+
+  apigateway:
+   image: apigateway
+   build:
+    context: ./APIGateway
+    dockerfile: Dockerfile
+   ports:
+    - "4500:8080"
+   networks:
+    - orders-mongodb-network
+    - ecommerce-network
+
 
 networks:
  orders-mongodb-network:
