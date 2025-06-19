@@ -3,8 +3,10 @@ using eCommerce.BusinessLogicLayer.DTO;
 using eCommerce.BusinessLogicLayer.ServiceContracts;
 using eCommerce.DataAccessLayer.Entities;
 using eCommerce.DataAccessLayer.RepositoryContracts;
+using eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ;
 using FluentValidation;
 using FluentValidation.Results;
+using System.Globalization;
 using System.Linq.Expressions;
 
 namespace eCommerce.BusinessLogicLayer.Services;
@@ -15,14 +17,19 @@ public class ProductsService : IProductsService
     private readonly IValidator<ProductUpdateRequest> _productUpdateRequestValidator;
     private readonly IMapper _mapper;
     private readonly IProductsRepository _productsRepository;
+    private readonly IRabbitMQPublisher _rabbitMQPublisher;
 
-
-    public ProductsService(IValidator<ProductAddRequest> productAddRequestValidator, IValidator<ProductUpdateRequest> productUpdateRequestValidator, IMapper mapper, IProductsRepository productsRepository)
+    public ProductsService(IValidator<ProductAddRequest> productAddRequestValidator,
+                           IValidator<ProductUpdateRequest> productUpdateRequestValidator, 
+                           IMapper mapper, 
+                           IProductsRepository productsRepository,
+                           IRabbitMQPublisher rabbitMQPublisher)
     {
         _productAddRequestValidator = productAddRequestValidator;
         _productUpdateRequestValidator = productUpdateRequestValidator;
         _mapper = mapper;
         _productsRepository = productsRepository;
+        _rabbitMQPublisher = rabbitMQPublisher;
     }
 
 
@@ -74,6 +81,25 @@ public class ProductsService : IProductsService
 
         //Attempt to delete product
         bool isDeleted = await _productsRepository.DeleteProduct(productID);
+        
+        if (isDeleted)
+        {
+            //Notify the ordersmicroservice that the product is deleted
+            //string routingkey = "product.delete";
+            
+            var message = new ProductDeleteMessage(existingProduct.ProductID, existingProduct.ProductName
+                );
+
+            var headers = new Dictionary<string, object>()
+              {
+                { "event", "product.delete" },
+                { "RowCount", 1 }
+              };
+
+            _rabbitMQPublisher.Publish(headers, message);
+            // _rabbitMQPublisher.Publish<ProductDeleteMessage>(routingkey, message);
+        }
+
         return isDeleted;
     }
 
@@ -136,8 +162,26 @@ public class ProductsService : IProductsService
         //Invokes ProductUpdateRequestToProductMappingProfile
         Product product = _mapper.Map<Product>(productUpdateRequest); 
 
-        Product? updatedProduct = await _productsRepository.UpdateProduct(product);
 
+        //check if name is changed
+        bool isNameChanged = productUpdateRequest.ProductName != existingProduct.ProductName;
+
+        Product? updatedProduct = await _productsRepository.UpdateProduct(product);
+        if (isNameChanged)
+        {
+            //string routingkey = "product.update.name";
+            var message = new ProductNameUpdateMessage(product.ProductID, product.ProductName
+                );
+
+            var headers = new Dictionary<string, object>()
+              {
+                { "event", "product.update" },
+                { "RowCount", 1 }
+              };
+
+            _rabbitMQPublisher.Publish(headers, message);
+            //_rabbitMQPublisher.Publish< ProductNameUpdateMessage>(routingkey, message );
+        }
         ProductResponse? updatedProductResponse = _mapper.Map<ProductResponse>(updatedProduct);
 
         return updatedProductResponse;
