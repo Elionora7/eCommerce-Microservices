@@ -1,5 +1,4 @@
-﻿using DnsClient.Internal;
-using Microsoft.Extensions.Caching.Distributed;
+﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
 using RabbitMQ.Client;
@@ -18,8 +17,8 @@ public class RabbitMQProductNameConsumer : IDisposable, IRabbitMQProductNameCons
     private readonly IDistributedCache _cache;
 
     public RabbitMQProductNameConsumer(IConfiguration configuration, 
-                              ILogger<RabbitMQProductNameConsumer> logger,
-                              IDistributedCache cache)
+                                       ILogger<RabbitMQProductNameConsumer> logger,
+                                       IDistributedCache cache)
     {
         _configuration = configuration;
         _logger = logger;
@@ -28,59 +27,80 @@ public class RabbitMQProductNameConsumer : IDisposable, IRabbitMQProductNameCons
         string hostName = _configuration["RabbitMQ_HostName"]!;
         string userName = _configuration["RabbitMQ_UserName"]!;
         string password = _configuration["RabbitMQ_Password"]!;
-        string port = _configuration["RabbitMQ_Port"]!;
+        string portString = _configuration["RabbitMQ_Port"]!;
 
-        ConnectionFactory connectionFactory = new ConnectionFactory()
+        Console.WriteLine($"RabbitMQ_HostName: {hostName}");
+        Console.WriteLine($"RabbitMQ_UserName: {userName}");
+        Console.WriteLine($"RabbitMQ_Password: {password}");
+        Console.WriteLine($"RabbitMQ_Port: {portString}");
+
+        int port;
+        if (portString.StartsWith("tcp://"))
+        {
+            var uri = new Uri(portString);
+            port = uri.Port;
+        }
+        else
+        {
+            port = Convert.ToInt32(portString);
+        }
+
+        var connectionFactory = new ConnectionFactory()
         {
             HostName = hostName,
             UserName = userName,
             Password = password,
-            Port = Convert.ToInt32(port)
+            Port = port
         };
-        _connection = connectionFactory.CreateConnection();
 
+        _connection = connectionFactory.CreateConnection();
         _channel = _connection.CreateModel();
     }
 
-
     public void Consume()
     {
-        //string routingKey = "product.update.name";
         string queueName = "orders.product.update.name.queue";
 
         var headers = new Dictionary<string, object>()
-      {
-        { "x-match", "all" },
-        { "event", "product.update" },
-        { "RowCount", 1 }
-      };
+        {
+            { "x-match", "all" },
+            { "event", "product.update" },
+            { "RowCount", 1 }
+        };
 
-
-        //Create exchange
         string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
         _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
 
-        //Create message queue
-        _channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null); //x-message-ttl | x-max-length | x-expired 
+        _channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
 
-        //Bind the message to exchange
         _channel.QueueBind(queue: queueName, exchange: exchangeName, routingKey: string.Empty, arguments: headers);
 
-        EventingBasicConsumer consumer = new EventingBasicConsumer(_channel);
+        var consumer = new EventingBasicConsumer(_channel);
 
         consumer.Received += async (sender, args) =>
         {
-            byte[] body = args.Body.ToArray();
-            string message = Encoding.UTF8.GetString(body);
-
-            if (message != null)
+            try
             {
-                ProductDTO? productDTO = JsonSerializer.Deserialize<ProductDTO>(message);
+                var body = args.Body.ToArray();
+                var message = Encoding.UTF8.GetString(body);
 
-                if (productDTO != null)
+                if (!string.IsNullOrWhiteSpace(message))
                 {
-                    await HandleProductUpdate(productDTO);
+                    ProductDTO? productDTO = JsonSerializer.Deserialize<ProductDTO>(message);
+
+                    if (productDTO != null)
+                    {
+                        await HandleProductUpdate(productDTO);
+                    }
+                    else
+                    {
+                        _logger.LogWarning("Received null ProductDTO after deserialization.");
+                    }
                 }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error processing product update message.");
             }
         };
 
@@ -93,8 +113,8 @@ public class RabbitMQProductNameConsumer : IDisposable, IRabbitMQProductNameCons
 
         string productJson = JsonSerializer.Serialize(productDTO);
 
-        DistributedCacheEntryOptions options = new DistributedCacheEntryOptions()
-          .SetAbsoluteExpiration(TimeSpan.FromSeconds(400));
+        var options = new DistributedCacheEntryOptions()
+            .SetAbsoluteExpiration(TimeSpan.FromSeconds(400));
 
         string cacheKey = $"product:{productDTO.ProductID}";
 
@@ -103,7 +123,7 @@ public class RabbitMQProductNameConsumer : IDisposable, IRabbitMQProductNameCons
 
     public void Dispose()
     {
-        _channel.Dispose();
-        _connection.Dispose();
+        _channel?.Dispose();
+        _connection?.Dispose();
     }
 }

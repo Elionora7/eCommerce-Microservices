@@ -1,0 +1,31 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: apigateway-deployment
+  namespace: ecommerce-namespace
+  labels:
+    app: apigateway
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: apigateway
+  template:
+    metadata:
+      labels:
+        app: apigateway
+    spec:
+      containers:
+      - name: apigateway
+        image: noraecommerceregistry.azurecr.io/apigateway:latest
+        ports:
+        - containerPort: 8080
+        env:
+        - name: RabbitMQ_HostName
+          value: rabbitmq
+        - name: RabbitMQ_Port
+          value: "5672"
+        - name: RabbitMQ_UserName
+          value: guest
+        - name: RabbitMQ_Password
+          value: guest

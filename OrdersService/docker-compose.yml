@@ -36,7 +36,7 @@ services:
    ports:
     - "27017:27017"
    volumes:
-    - ../mongodb-init:/docker-entrypoint-initdb.d
+    - ../mongodb/mongodb-init:/docker-entrypoint-initdb.d
    networks:
     - orders-mongodb-network
      
@@ -72,7 +72,7 @@ services:
    ports:
     - "3306:3306"
    volumes:
-    - ../mysql-init:/docker-entrypoint-initdb.d
+    - ../mysql/mysql-init:/docker-entrypoint-initdb.d
    networks:
     - products-mysql-network
 
@@ -105,7 +105,7 @@ services:
    ports:
     - "5433:5432"
    volumes:
-    - ../postgres-init:/docker-entrypoint-initdb.d
+    - ../postgres/postgres-init:/docker-entrypoint-initdb.d
    networks:
     - users-postgres-network
 

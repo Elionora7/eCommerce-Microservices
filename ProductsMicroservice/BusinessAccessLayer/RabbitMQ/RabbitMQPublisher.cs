@@ -18,7 +18,23 @@ namespace eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ
             string hostName = _configuration["RabbitMQ_HostName"]!;
             string userName = _configuration["RabbitMQ_UserName"]!;
             string password = _configuration["RabbitMQ_Password"]!;
-            int port = int.Parse(_configuration["RabbitMQ_Port"]!);
+            string portString = _configuration["RabbitMQ_Port"]!;
+
+            Console.WriteLine($"RabbitMQ_HostName: {hostName}");
+            Console.WriteLine($"RabbitMQ_UserName: {userName}");
+            Console.WriteLine($"RabbitMQ_Password: {password}");
+            Console.WriteLine($"RabbitMQ_Port: {portString}");
+
+            int port;
+            if (portString.StartsWith("tcp://"))
+            {
+                var uri = new Uri(portString);
+                port = uri.Port;
+            }
+            else
+            {
+                port = int.Parse(portString);
+            }
 
             var factory = new ConnectionFactory()
             {
@@ -31,12 +47,11 @@ namespace eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
 
-            // Declare exchange on startup
+            // Declare exchange on startup (idempotent)
             string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
             _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
         }
 
-        //public void Publish<T>(string routingKey, T message)
         public void Publish<T>(Dictionary<string, object> headers, T message)
         {
             string messageJson = JsonSerializer.Serialize(message);
@@ -44,22 +59,17 @@ namespace eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ
 
             string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
 
-            // (Optional safety): declare exchange again to be fully idempotent
-            
-            _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers,durable: true);
+            // Declare exchange again for idempotency/safety
+            _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
 
-            // Publish message
-            /*_channel.BasicPublish(
-                exchange: exchangeName,
-                routingKey: routingKey,
-                basicProperties: null,
-                body: messageBody
-            );*/
-            //Publish message
             var basicProperties = _channel.CreateBasicProperties();
             basicProperties.Headers = headers;
 
-            _channel.BasicPublish(exchange: exchangeName, routingKey: string.Empty, basicProperties: basicProperties, body: messageBody);
+            _channel.BasicPublish(
+                exchange: exchangeName,
+                routingKey: string.Empty,
+                basicProperties: basicProperties,
+                body: messageBody);
         }
 
         public void Dispose()

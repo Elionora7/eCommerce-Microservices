@@ -27,27 +27,41 @@ public class RabbitMQProductDeleteConsumer : IRabbitMQProductDeleteConsumer, IDi
         string hostName = _configuration["RabbitMQ_HostName"]!;
         string userName = _configuration["RabbitMQ_UserName"]!;
         string password = _configuration["RabbitMQ_Password"]!;
-        string port = _configuration["RabbitMQ_Port"]!;
+        string portString = _configuration["RabbitMQ_Port"]!;
+
+        Console.WriteLine($"RabbitMQ_HostName: {hostName}");
+        Console.WriteLine($"RabbitMQ_UserName: {userName}");
+        Console.WriteLine($"RabbitMQ_Password: {password}");
+        Console.WriteLine($"RabbitMQ_Port: {portString}");
+
+        int port;
+        if (portString.StartsWith("tcp://"))
+        {
+            var uri = new Uri(portString);
+            port = uri.Port;
+        }
+        else
+        {
+            port = Convert.ToInt32(portString);
+        }
 
         ConnectionFactory connectionFactory = new ConnectionFactory()
         {
             HostName = hostName,
             UserName = userName,
             Password = password,
-            Port = Convert.ToInt32(port)
+            Port = port
         };
-        _connection = connectionFactory.CreateConnection();
 
+        _connection = connectionFactory.CreateConnection();
         _channel = _connection.CreateModel();
     }
 
-
     public void Consume()
     {
-        //string routingKey = "product.delete";
         string queueName = "orders.product.delete.queue";
 
-        //define the headers
+        // Define headers
         var headers = new Dictionary<string, object>()
          {
             { "x-match", "all" },
@@ -55,16 +69,15 @@ public class RabbitMQProductDeleteConsumer : IRabbitMQProductDeleteConsumer, IDi
             { "RowCount", 1 }
          };
 
-
-        //Create exchange
+        // Create exchange
         string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
         _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
 
-        //Create message queue
-        _channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null); //x-message-ttl | x-max-length | x-expired 
+        // Create queue
+        _channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
 
-        //Bind the message to exchange
-        _channel.QueueBind(queue: queueName, exchange: exchangeName, routingKey: String.Empty,arguments: headers);
+        // Bind queue to exchange with headers
+        _channel.QueueBind(queue: queueName, exchange: exchangeName, routingKey: string.Empty, arguments: headers);
 
         EventingBasicConsumer consumer = new EventingBasicConsumer(_channel);
 
@@ -107,4 +120,3 @@ public class RabbitMQProductDeleteConsumer : IRabbitMQProductDeleteConsumer, IDi
         _connection.Dispose();
     }
 }
-
