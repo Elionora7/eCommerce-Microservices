@@ -44,6 +44,8 @@ namespace eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ
                 Port = port
             };
 
+            try
+            {
             _connection = factory.CreateConnection();
             _channel = _connection.CreateModel();
 
