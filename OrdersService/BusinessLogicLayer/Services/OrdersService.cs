@@ -6,6 +6,7 @@ using eCommerce.OrdersMicroservice.DataAccessLayer.Entities;
 using eCommerce.OrdersMicroservice.DataAccessLayer.RepositoryContracts;
 using FluentValidation;
 using FluentValidation.Results;
+using Microsoft.Extensions.Logging;
 using MongoDB.Driver;
 
 namespace eCommerce.OrdersMicroservice.BusinessLogicLayer.Services;
@@ -17,359 +18,260 @@ public class OrdersService : IOrdersService
     private readonly IValidator<OrderUpdateRequest> _orderUpdateRequestValidator;
     private readonly IValidator<OrderItemUpdateRequest> _orderItemUpdateRequestValidator;
     private readonly IMapper _mapper;
-    private IOrdersRepository _ordersRepository;
-    private UserMicroserviceClient _userMicroserviceClient;
-    private ProductMicroserviceClient _productMicroserviceClient;
+    private readonly IOrdersRepository _ordersRepository;
+    private readonly UserMicroserviceClient _userMicroserviceClient;
+    private readonly ProductMicroserviceClient _productMicroserviceClient;
+    private readonly ILogger<OrdersService> _logger;
 
-
-    public OrdersService(IOrdersRepository ordersRepository, 
-        IMapper mapper, IValidator<OrderAddRequest> orderAddRequestValidator,
+    public OrdersService(
+        IOrdersRepository ordersRepository,
+        IMapper mapper,
+        IValidator<OrderAddRequest> orderAddRequestValidator,
         IValidator<OrderItemAddRequest> orderItemAddRequestValidator,
-        IValidator<OrderUpdateRequest> orderUpdateRequestValidator, 
-        IValidator<OrderItemUpdateRequest> orderItemUpdateRequestValidator, 
+        IValidator<OrderUpdateRequest> orderUpdateRequestValidator,
+        IValidator<OrderItemUpdateRequest> orderItemUpdateRequestValidator,
         UserMicroserviceClient userMicroserviceClient,
-        ProductMicroserviceClient productMicroserviceClient)
+        ProductMicroserviceClient productMicroserviceClient,
+        ILogger<OrdersService> logger)
     {
-        _orderAddRequestValidator = orderAddRequestValidator;
-        _orderItemAddRequestValidator = orderItemAddRequestValidator;
-        _orderUpdateRequestValidator = orderUpdateRequestValidator;
-        _orderItemUpdateRequestValidator = orderItemUpdateRequestValidator;
-        _mapper = mapper;
-        _ordersRepository = ordersRepository;
-        _userMicroserviceClient = userMicroserviceClient;
-        _productMicroserviceClient = productMicroserviceClient;
+        _ordersRepository = ordersRepository ?? throw new ArgumentNullException(nameof(ordersRepository));
+        _mapper = mapper ?? throw new ArgumentNullException(nameof(mapper));
+        _orderAddRequestValidator = orderAddRequestValidator ?? throw new ArgumentNullException(nameof(orderAddRequestValidator));
+        _orderItemAddRequestValidator = orderItemAddRequestValidator ?? throw new ArgumentNullException(nameof(orderItemAddRequestValidator));
+        _orderUpdateRequestValidator = orderUpdateRequestValidator ?? throw new ArgumentNullException(nameof(orderUpdateRequestValidator));
+        _orderItemUpdateRequestValidator = orderItemUpdateRequestValidator ?? throw new ArgumentNullException(nameof(orderItemUpdateRequestValidator));
+        _userMicroserviceClient = userMicroserviceClient ?? throw new ArgumentNullException(nameof(userMicroserviceClient));
+        _productMicroserviceClient = productMicroserviceClient ?? throw new ArgumentNullException(nameof(productMicroserviceClient));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
     }
-
 
     public async Task<OrderResponse?> AddOrder(OrderAddRequest orderAddRequest)
     {
-        if (orderAddRequest == null)
+        ArgumentNullException.ThrowIfNull(orderAddRequest);
+
+        await ValidateRequest(_orderAddRequestValidator, orderAddRequest);
+
+        // Validate and fetch products
+        var products = new List<ProductDTO>();
+        foreach (var item in orderAddRequest.OrderItems)
         {
-            throw new ArgumentNullException(nameof(orderAddRequest));
-        }
-
-
-        //Validate OrderAddRequest using Fluent Validation
-        ValidationResult orderAddRequestValidationResult = await _orderAddRequestValidator.ValidateAsync(orderAddRequest);
-        if (!orderAddRequestValidationResult.IsValid)
-        {
-            string errors = string.Join(", ", orderAddRequestValidationResult.Errors.Select(tmp => tmp.ErrorMessage));
-            throw new ArgumentException(errors);
-        }
-
-        List<ProductDTO?> products = new List<ProductDTO?>();
-
-        //Validate orderitems using Fluent Validation
-        foreach (OrderItemAddRequest _orderItemAddRequest in orderAddRequest.OrderItems)
-        {
-            ValidationResult orderItemAddRequestValidationResult = await _orderItemAddRequestValidator.ValidateAsync(_orderItemAddRequest);
-
-            if (!orderItemAddRequestValidationResult.IsValid)
-            {
-                string errors = string.Join(", ", orderItemAddRequestValidationResult.Errors.Select(temp => temp.ErrorMessage));
-                throw new ArgumentException(errors);
-            }
-
-
-            //TO DO: check if ProductId exist in Productmicroservice
-            ProductDTO? product = await _productMicroserviceClient.GetProductByProductId(_orderItemAddRequest.ProductID);
-            if (product == null)
-            {
-                throw new ArgumentException("Invalid Product ID");
-            }
-
+            await ValidateRequest(_orderItemAddRequestValidator, item);
+            var product = await _productMicroserviceClient.GetProductByProductId(item.ProductID)
+                ?? throw new ArgumentException("Invalid Product ID", nameof(item.ProductID));
             products.Add(product);
         }
 
-        //TO DO: check if UserId exist in usermicroservice
-        UserDTO? user = await _userMicroserviceClient.GetUserByUserId(orderAddRequest.UserID);
-        if (user == null)
-        {
-            throw new ArgumentException("Invalid User ID");
-        }
+        // Validate user
+        var user = await _userMicroserviceClient.GetUserByUserId(orderAddRequest.UserID)
+            ?? throw new ArgumentException("Invalid User ID", nameof(orderAddRequest.UserID));
 
+        // Map & calculate
+        var order = _mapper.Map<Order>(orderAddRequest);
+        CalculateTotals(order);
 
-        //Convert data from OrderAddRequest to Order
-        //Map OrderAddRequest to Order
-        Order order = _mapper.Map<Order>(orderAddRequest);
+        var addedOrder = await _ordersRepository.AddOrder(order);
+        if (addedOrder is null) return null;
 
+        var orderResponse = _mapper.Map<OrderResponse>(addedOrder);
+        var enrichedWithProducts = EnrichOrderWithProducts(orderResponse, products);
+        var enrichedWithUser = EnrichOrderWithUser(enrichedWithProducts, user);
 
-        //Generate values
-        foreach (OrderItem orderItem in order.OrderItems)
-        {
-            orderItem.TotalPrice = orderItem.Quantity * orderItem.UnitPrice;
-        }
-        order.TotalBill = order.OrderItems.Sum(tmp => tmp.TotalPrice);
-
-
-        //Invoke repository
-        Order? addedOrder = await _ordersRepository.AddOrder(order);
-
-        if (addedOrder == null)
-        {
-            return null;
-        }
-
-        //Map Order into OrderResponse type 
-        OrderResponse orderResponse = _mapper.Map<OrderResponse>(addedOrder);
-
-        //TO DO:add ProductName and Category to OrderItem
-        if (orderResponse != null)
-        {
-            foreach (OrderItemResponse orderItemResponse in orderResponse.OrderItems)
-            {
-                ProductDTO? productDTO = products.Where(tmp => tmp.ProductID == orderItemResponse.ProductID).FirstOrDefault();
-
-                if (productDTO == null)
-                    continue;
-
-                _mapper.Map<ProductDTO, OrderItemResponse>(productDTO, orderItemResponse);
-            }
-        }
-
-
-
-        //TO DO: add UserName and Email from UsersMicroservice
-        if (orderResponse != null)
-        {
-            if (user != null)
-            {
-                _mapper.Map<UserDTO, OrderResponse>(user, orderResponse);
-            }
-        }
-
-        return orderResponse;
+        return enrichedWithUser;
     }
-
-
 
     public async Task<OrderResponse?> UpdateOrder(OrderUpdateRequest orderUpdateRequest)
     {
-        List<ProductDTO> products = new List<ProductDTO>();
-        //Check for null parameter
-        if (orderUpdateRequest == null)
+        ArgumentNullException.ThrowIfNull(orderUpdateRequest);
+        await ValidateRequest(_orderUpdateRequestValidator, orderUpdateRequest);
+
+        var products = new List<ProductDTO>();
+        foreach (var item in orderUpdateRequest.OrderItems)
         {
-            throw new ArgumentNullException(nameof(orderUpdateRequest));
+            await ValidateRequest(_orderItemUpdateRequestValidator, item);
+            var product = await _productMicroserviceClient.GetProductByProductId(item.ProductID)
+                ?? throw new ArgumentException($"Product {item.ProductID} does not exist", nameof(item.ProductID));
+            products.Add(product);
         }
 
+        var user = await _userMicroserviceClient.GetUserByUserId(orderUpdateRequest.UserID)
+            ?? throw new ArgumentException("Invalid User ID", nameof(orderUpdateRequest.UserID));
 
-        //Validate OrderUpdateRequest using Fluent Validation
-        ValidationResult orderUpdateRequestValidationResult = await _orderUpdateRequestValidator.ValidateAsync(orderUpdateRequest);
-        if (!orderUpdateRequestValidationResult.IsValid)
-        {
-            string errors = string.Join(", ", orderUpdateRequestValidationResult.Errors.Select(temp => temp.ErrorMessage));
-            throw new ArgumentException(errors);
-        }
+        var order = _mapper.Map<Order>(orderUpdateRequest);
+        CalculateTotals(order);
 
-        
+        var updatedOrder = await _ordersRepository.UpdateOrder(order);
+        if (updatedOrder is null) return null;
 
-        //Validate order items using Fluent Validation
-        foreach (OrderItemUpdateRequest orderItemUpdateRequest in orderUpdateRequest.OrderItems)
-        {
-            ValidationResult orderItemUpdateRequestValidationResult = await _orderItemUpdateRequestValidator.ValidateAsync(orderItemUpdateRequest);
+        var orderResponse = _mapper.Map<OrderResponse>(updatedOrder);
+        var enrichedWithProducts = EnrichOrderWithProducts(orderResponse, products);
+        var enrichedWithUser = EnrichOrderWithUser(enrichedWithProducts, user);
 
-            if (!orderItemUpdateRequestValidationResult.IsValid)
-            {
-                string errors = string.Join(", ", orderItemUpdateRequestValidationResult.Errors.Select(temp => temp.ErrorMessage));
-                throw new ArgumentException(errors);
-            }
-
-
-            //TO DO: call getproductbyproductid
-            ProductDTO productDTO = await _productMicroserviceClient.GetProductByProductId(orderItemUpdateRequest.ProductID);
-            if (productDTO == null)
-            {
-                throw new ArgumentException($"Product with ID {orderItemUpdateRequest.ProductID} does not exist", nameof(orderItemUpdateRequest.ProductID));
-            }
-
-            products.Add(productDTO);
-        }
-
-        //TO DO:checking if UserID exists in Usersmicroservice
-        UserDTO userDTO = await _userMicroserviceClient.GetUserByUserId(orderUpdateRequest.UserID);
-        if (userDTO == null)
-        {
-            throw new ArgumentException("Invalid User ID!");
-        }
-
-
-        //Map OrderUpdateRequest to Order type 
-        Order order = _mapper.Map<Order>(orderUpdateRequest);
-        //Generate values
-        foreach (OrderItem orderItem in order.OrderItems)
-        {
-            orderItem.TotalPrice = orderItem.Quantity * orderItem.UnitPrice;
-        }
-    order.TotalBill = order.OrderItems.Sum(temp => temp.TotalPrice);
-
-
-        //Invoke repository
-        Order? updatedOrder = await _ordersRepository.UpdateOrder(order);
-
-        if (updatedOrder == null)
-        {
-            return null;
-        }
-        //Map Order into OrderResponse type (invokes OrderToOrderResponseMappingProfile)
-        OrderResponse updatedOrderResponse = _mapper.Map<OrderResponse>(updatedOrder); //Map updatedOrder ('Order' type) into 'OrderResponse' type (it invokes OrderToOrderResponseMappingProfile).
-
-
-        //TO DO: Load ProductName and Category in OrderItem
-        if (updatedOrderResponse != null)
-        {
-            foreach (OrderItemResponse orderItemResponse in updatedOrderResponse.OrderItems)
-            {
-                ProductDTO? productDTO = products.Where(tmp => tmp.ProductID == orderItemResponse.ProductID).FirstOrDefault();
-
-                if (productDTO == null)
-                    continue;
-
-                _mapper.Map<ProductDTO, OrderItemResponse>(productDTO, orderItemResponse);
-            }
-        }
-
-
-        //Map user into OrderResponse type 
-        if (updatedOrderResponse != null)
-        {
-            if (userDTO != null)
-            {
-                _mapper.Map<UserDTO, OrderResponse>(userDTO, updatedOrderResponse);
-            }
-        }
-
-        return updatedOrderResponse;
+        return enrichedWithUser;
     }
-
 
     public async Task<bool> DeleteOrder(Guid orderID)
     {
-        FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(temp => temp.OrderID, orderID);
-        Order? existingOrder = await _ordersRepository.GetOrderByCondition(filter);
+        var existingOrder = await _ordersRepository.GetOrderByCondition(Builders<Order>.Filter.Eq(o => o.OrderID, orderID));
+        if (existingOrder is null) return false;
 
-        if (existingOrder == null)
-        {
-            return false;
-        }
-
-
-        bool isDeleted = await _ordersRepository.DeleteOrder(orderID);
-        return isDeleted;
+        return await _ordersRepository.DeleteOrder(orderID);
     }
-
 
     public async Task<OrderResponse?> GetOrderByCondition(FilterDefinition<Order> filter)
     {
-        Order? order = await _ordersRepository.GetOrderByCondition(filter);
-        if (order == null)
-            return null;
+        var order = await _ordersRepository.GetOrderByCondition(filter);
+        if (order is null) return null;
 
-        OrderResponse orderResponse = _mapper.Map<OrderResponse>(order);
-
-
-        //TO DO: add ProductName and Category to OrderItem
-        if (orderResponse != null)
-        {
-            foreach (OrderItemResponse orderItemResponse in orderResponse.OrderItems)
-            {
-                ProductDTO? productDTO = await _productMicroserviceClient.GetProductByProductId(orderItemResponse.ProductID);
-
-                if (productDTO == null)
-                    continue;
-
-                _mapper.Map<ProductDTO, OrderItemResponse>(productDTO, orderItemResponse);
-            }
-        }
-
-
-        //TO DO: Load User Name and Email from Users Microservice
-        if (orderResponse != null)
-        {
-            UserDTO? user = await _userMicroserviceClient.GetUserByUserId(orderResponse.UserID);
-            if (user != null)
-            {
-                _mapper.Map<UserDTO, OrderResponse>(user, orderResponse);
-            }
-        }
-
-        return orderResponse;
+        var orderResponse = _mapper.Map<OrderResponse>(order);
+        return await EnrichOrderWithExternalData(orderResponse);
     }
-
 
     public async Task<List<OrderResponse?>> GetOrdersByCondition(FilterDefinition<Order> filter)
     {
-        IEnumerable<Order?> orders = await _ordersRepository.GetOrdersByCondition(filter);
-
-
-        IEnumerable<OrderResponse?> orderResponses = _mapper.Map<IEnumerable<OrderResponse>>(orders);
-
-
-        //TO DO: add ProductName and Category in each OrderItem
-        foreach (OrderResponse? orderResponse in orderResponses)
-        {
-            if (orderResponse == null)
-            {
-                continue;
-            }
-
-            foreach (OrderItemResponse orderItemResponse in orderResponse.OrderItems)
-            {
-                ProductDTO? productDTO = await _productMicroserviceClient.GetProductByProductId(orderItemResponse.ProductID);
-
-                if (productDTO == null)
-                    continue;
-
-                _mapper.Map<ProductDTO, OrderItemResponse>(productDTO, orderItemResponse);
-            }
-
-
-            //TO DO: Load UserName and Email from UserMicroservice
-            UserDTO? user = await _userMicroserviceClient.GetUserByUserId(orderResponse.UserID);
-            if (user != null)
-            {
-                _mapper.Map<UserDTO, OrderResponse>(user, orderResponse);
-            }
-        }
-
-        return orderResponses.ToList();
+        var orders = await _ordersRepository.GetOrdersByCondition(filter);
+        return await MapAndEnrichOrders(orders);
     }
-
 
     public async Task<List<OrderResponse?>> GetOrders()
     {
-        IEnumerable<Order?> orders = await _ordersRepository.GetOrders();
+        var orders = await _ordersRepository.GetOrders();
+        return await MapAndEnrichOrders(orders);
+    }
 
-        IEnumerable<OrderResponse?> ordersResponse = _mapper.Map<IEnumerable<OrderResponse>>(orders);
+    // =====================
+    // Private helper methods
+    // =====================
+    private static void CalculateTotals(Order order)
+    {
+        foreach (var item in order.OrderItems)
+            item.TotalPrice = item.Quantity * item.UnitPrice;
 
+        order.TotalBill = order.OrderItems.Sum(i => i.TotalPrice);
+    }
 
-        //TO DO: Load ProductName and Category in each OrderItem
-        foreach (OrderResponse? orderResponse in ordersResponse)
+    private static async Task ValidateRequest<T>(IValidator<T> validator, T request)
+    {
+        var result = await validator.ValidateAsync(request);
+        if (!result.IsValid)
+            throw new ArgumentException(string.Join(", ", result.Errors.Select(e => e.ErrorMessage)));
+    }
+
+    private OrderResponse EnrichOrderWithProducts(OrderResponse orderResponse, IEnumerable<ProductDTO> products)
+    {
+        var enrichedItems = new List<OrderItemResponse>();
+
+        foreach (var item in orderResponse.OrderItems)
         {
-            if (orderResponse == null)
+            var product = products.FirstOrDefault(p => p.ProductID == item.ProductID);
+            if (product != null)
             {
-                continue;
+                var enrichedItem = item with
+                {
+                    ProductName = product.ProductName,
+                    Category = product.Category,
+                };
+                enrichedItems.Add(enrichedItem);
             }
-
-            foreach (OrderItemResponse orderItemResponse in orderResponse.OrderItems)
+            else
             {
-                ProductDTO? productDTO = await _productMicroserviceClient.GetProductByProductId(orderItemResponse.ProductID);
-
-                if (productDTO == null)
-                    continue;
-
-                _mapper.Map<ProductDTO, OrderItemResponse>(productDTO, orderItemResponse);
-            }
-
-
-            //TO DO: Load User Name and Email from UserMicroservice
-            UserDTO? user = await _userMicroserviceClient.GetUserByUserId(orderResponse.UserID);
-            if (user != null)
-            {
-                _mapper.Map<UserDTO, OrderResponse>(user, orderResponse);
+                // Handle missing product data
+                var fallbackItem = item with
+                {
+                    ProductName = "Product temporarily unavailable",
+                    Category = "Unknown"
+                };
+                enrichedItems.Add(fallbackItem);
+                _logger.LogWarning("Product {ProductId} data not available for order {OrderId}", item.ProductID, orderResponse.OrderID);
             }
         }
 
+        return orderResponse with
+        {
+            OrderItems = enrichedItems
+        };
+    }
 
-        return ordersResponse.ToList();
+    private OrderResponse EnrichOrderWithUser(OrderResponse orderResponse, UserDTO user)
+    {
+        if (user != null && user.UserID != Guid.Empty)
+        {
+            return orderResponse with
+            {
+                Name = user.Name ?? "Unknown User",
+                Email = user.Email ?? "No email provided"
+            };
+        }
+        else
+        {
+            _logger.LogWarning("Invalid user data provided for order enrichment");
+            return orderResponse with
+            {
+                Name = "User information unavailable",
+                Email = "Service temporarily down"
+            };
+        }
+    }
+
+    private async Task<OrderResponse> EnrichOrderWithExternalData(OrderResponse orderResponse)
+    {
+        // First, enrich the order items
+        var enrichedItems = new List<OrderItemResponse>();
+
+        foreach (var item in orderResponse.OrderItems)
+        {
+            var product = await _productMicroserviceClient.GetProductByProductId(item.ProductID);
+            if (product != null)
+            {
+                // Create a new enriched item
+                var enrichedItem = item with
+                {
+                    ProductName = product.ProductName,  // Use ProductName, not Name
+                    Category = product.Category
+                };
+                enrichedItems.Add(enrichedItem);
+            }
+            else
+            {
+                enrichedItems.Add(item);
+            }
+        }
+
+        // Enrich user data
+        var user = await _userMicroserviceClient.GetUserByUserId(orderResponse.UserID);
+
+        if (user != null && user.UserID != Guid.Empty)
+        {
+            // Return a new enriched order response
+            return orderResponse with
+            {
+                Name = user.Name ?? "Unknown User",
+                Email = user.Email ?? "No email provided",
+                OrderItems = enrichedItems
+            };
+        }
+        else
+        {
+            // Return with fallback values
+            return orderResponse with
+            {
+                Name = "User information temporarily unavailable",
+                Email = "Check back later",
+                OrderItems = enrichedItems
+            };
+        }
+    }
+
+    private async Task<List<OrderResponse?>> MapAndEnrichOrders(IEnumerable<Order?> orders)
+    {
+        var orderResponses = _mapper.Map<List<OrderResponse?>>(orders);
+        var enrichedResponses = new List<OrderResponse?>();
+
+        foreach (var orderResponse in orderResponses.Where(o => o != null))
+        {
+            var enrichedResponse = await EnrichOrderWithExternalData(orderResponse!);
+            enrichedResponses.Add(enrichedResponse);
+        }
+
+        return enrichedResponses;
     }
 }

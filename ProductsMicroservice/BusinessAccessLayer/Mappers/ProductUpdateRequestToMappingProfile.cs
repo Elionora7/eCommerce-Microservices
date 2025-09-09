@@ -2,18 +2,19 @@
 using eCommerce.DataAccessLayer.Entities;
 using eCommerce.BusinessLogicLayer.DTO;
 
-namespace eCommerce.BusinessLogicLayer.Mappers;
-
-public class ProductUpdateRequestToProductMappingProfile : Profile
+namespace eCommerce.BusinessLogicLayer.Mappers
 {
-    public ProductUpdateRequestToProductMappingProfile()
+    public class ProductUpdateRequestToProductMappingProfile : Profile
     {
-        CreateMap<ProductUpdateRequest, Product>()
-          .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
-          .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category))
-          .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.UnitPrice))
-          .ForMember(dest => dest.QuantityInStock, opt => opt.MapFrom(src => src.QuantityInStock))
-          .ForMember(dest => dest.ProductID, opt => opt.MapFrom(src => src.ProductID))
-          ;
+        public ProductUpdateRequestToProductMappingProfile()
+        {
+            CreateMap<ProductUpdateRequest, Product>()
+                .ForMember(dest => dest.ProductID, opt => opt.MapFrom(src => src.ProductID))
+                .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
+                .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category.ToString()))
+                .ForMember(dest => dest.UnitPrice, opt => opt.MapFrom(src => src.UnitPrice))
+                .ForMember(dest => dest.QuantityInStock, opt => opt.MapFrom(src => src.QuantityInStock))
+                .ForMember(dest => dest.imgUrl, opt => opt.MapFrom(src => src.imgUrl));
+        }
     }
 }

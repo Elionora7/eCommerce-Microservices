@@ -6,8 +6,14 @@ public class Product
 {
     [Key]
     public Guid ProductID { get; set; }
-    public string ProductName { get; set; }
-    public string Category { get; set; }
+
+    [Required]
+    public required string ProductName { get; set; }
+
+    [Required]
+    public required string Category { get; set; }
+
     public double? UnitPrice { get; set; }
     public int? QuantityInStock { get; set; }
+    public string? imgUrl { get; set; }
 }

@@ -26,5 +26,9 @@ public class ProductUpdateRequestValidator : AbstractValidator<ProductUpdateRequ
         //QuantityInStock
         RuleFor(temp => temp.QuantityInStock)
           .InclusiveBetween(0, int.MaxValue).WithMessage($"Quantity in Stock should between 0 to {int.MaxValue}");
+
+        //imgUrl
+        RuleFor(temp => temp.imgUrl)
+          .NotEmpty().WithMessage("Product Image Url is required!");
     }
 }

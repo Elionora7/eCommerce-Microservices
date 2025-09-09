@@ -68,7 +68,7 @@ public class ProductsRepository : IProductsRepository
         existingProduct.UnitPrice = product.UnitPrice;
         existingProduct.QuantityInStock = product.QuantityInStock;
         existingProduct.Category = product.Category;
-
+        existingProduct.imgUrl =product.imgUrl;
         await _dbContext.SaveChangesAsync();
 
         return existingProduct;

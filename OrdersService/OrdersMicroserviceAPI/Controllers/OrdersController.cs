@@ -20,7 +20,7 @@ public class OrdersController : ControllerBase
     }
 
 
-    //Get: /api/Orders
+    //Get: /api/orders
     [HttpGet]
     public async Task<IEnumerable<OrderResponse?>> Get()
     {
@@ -29,7 +29,7 @@ public class OrdersController : ControllerBase
     }
 
 
-    //Get: /api/Orders/search/orderid/{orderId}
+    //Get: /api/orders/search/orderid/{orderId}
     [HttpGet("search/orderid/{orderId}")]
     public async Task<OrderResponse?> GetOrderByOrderID(Guid orderId)
     {
@@ -38,9 +38,9 @@ public class OrdersController : ControllerBase
         OrderResponse? order = await _ordersService.GetOrderByCondition(filter);
         return order;
     }
+    
 
-
-    //Get: /api/Orders/search/productid/{productId}
+    //Get: /api/orders/search/productid/{productId}
     [HttpGet("search/productid/{productId}")]
     public async Task<IEnumerable<OrderResponse?>> GetOrdersByProductId(Guid ProductId)
     {
@@ -53,20 +53,23 @@ public class OrdersController : ControllerBase
 
 
 
-    //Get: /api/Orders/search/orderDate/{orderDate}
-    [HttpGet("/search/orderDate/{orderDate}")]
+    //Get: /api/orders/search/orderDate/{orderDate}
+    [HttpGet("search/orderDate/{orderDate}")]
     public async Task<IEnumerable<OrderResponse?>> GetOrdersByOrderDate(DateTime orderDate)
     {
-        FilterDefinition<Order> filter = Builders<Order>.Filter.Eq(temp => temp.OrderDate.ToString("dd-MM-yyyy"), orderDate.ToString("dd-MM-yyyy"));
-
+        var startDate = orderDate.Date;
+        var endDate = startDate.AddDays(1);
+        FilterDefinition<Order> filter = Builders<Order>.Filter.Gte(temp => temp.OrderDate, startDate)
+            & Builders<Order>.Filter.Lt(temp => temp.OrderDate, endDate);
+        
         List<OrderResponse?> orders = await _ordersService.GetOrdersByCondition(filter);
         return orders;
     }
 
 
-    //POST api/Orders
+    //POST api/orders
     [HttpPost]
-    public async Task<IActionResult> Post(OrderAddRequest orderAddRequest)
+    public async Task<ActionResult<OrderResponse>> Post(OrderAddRequest orderAddRequest)
     {
         if (orderAddRequest == null)
         {
@@ -81,11 +84,14 @@ public class OrdersController : ControllerBase
         }
 
 
-        return Created($"api/Orders/search/orderid/{orderResponse?.OrderID}", orderResponse);
+        return    CreatedAtAction(nameof(GetOrderByOrderID),
+        new { orderId = orderResponse.OrderID },
+        orderResponse
+    );
     }
 
 
-    //PUT api/Orders/{orderID}
+    //PUT api/orders/{orderID}
     [HttpPut("{orderID}")]
     public async Task<IActionResult> Put(Guid orderID, OrderUpdateRequest orderUpdateRequest)
     {
@@ -111,7 +117,7 @@ public class OrdersController : ControllerBase
     }
 
 
-    //DELETE api/Orders/{orderID}
+    //DELETE api/orders/{orderID}
     [HttpDelete("{orderID}")]
     public async Task<IActionResult> Delete(Guid orderID)
     {
@@ -130,7 +136,7 @@ public class OrdersController : ControllerBase
         return Ok(isDeleted);
     }
 
-    //Get: /api/Orders/search/userid/{userID}
+    //Get: /api/orders/search/userid/{userID}
     [HttpGet("search/userid/{userID}")]
     public async Task<IEnumerable<OrderResponse?>> getOrdersByUserId(Guid userID)
     {

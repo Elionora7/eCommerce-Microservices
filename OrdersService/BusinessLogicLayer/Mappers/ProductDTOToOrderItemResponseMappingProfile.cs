@@ -10,6 +10,7 @@ public class ProductDTOToOrderItemResponseMappingProfile : Profile
     {
         CreateMap<ProductDTO, OrderItemResponse>()
           .ForMember(dest => dest.ProductName, opt => opt.MapFrom(src => src.ProductName))
-          .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category));
+          .ForMember(dest => dest.Category, opt => opt.MapFrom(src => src.Category))
+          .ForMember(dest => dest.ImgUrl, opt => opt.MapFrom(src => src.ImgUrl));
     }
 }

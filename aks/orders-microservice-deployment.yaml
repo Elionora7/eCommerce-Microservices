@@ -46,9 +46,15 @@ spec:
         - name: RabbitMQ_Port
           value: "5672"
         - name: RabbitMQ_UserName
-          value: guest
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-credentials
+              key: RabbitMQ_UserName
         - name: RabbitMQ_Password
-          value: guest
+          valueFrom:
+            secretKeyRef:
+              name: rabbitmq-credentials
+              key: RabbitMQ_Password
         - name: RabbitMQ_Products_Exchange
           value: products.exchange
         - name: RabbitMQ_Users_Exchange

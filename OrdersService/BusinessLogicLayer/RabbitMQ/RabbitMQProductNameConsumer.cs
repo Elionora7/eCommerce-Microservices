@@ -1,8 +1,10 @@
 ﻿using Microsoft.Extensions.Caching.Distributed;
 using Microsoft.Extensions.Configuration;
 using Microsoft.Extensions.Logging;
+using Polly;
 using RabbitMQ.Client;
 using RabbitMQ.Client.Events;
+using RabbitMQ.Client.Exceptions;
 using System.Text;
 using System.Text.Json;
 
@@ -11,119 +13,199 @@ namespace eCommerce.OrdersMicroservice.BusinessLogicLayer.RabbitMQ;
 public class RabbitMQProductNameConsumer : IDisposable, IRabbitMQProductNameConsumer
 {
     private readonly IConfiguration _configuration;
-    private readonly IModel _channel;
-    private readonly IConnection _connection;
     private readonly ILogger<RabbitMQProductNameConsumer> _logger;
     private readonly IDistributedCache _cache;
+    private const string ProductCacheKeyPrefix = "product:";
+    private bool _disposed;
 
-    public RabbitMQProductNameConsumer(IConfiguration configuration, 
-                                       ILogger<RabbitMQProductNameConsumer> logger,
-                                       IDistributedCache cache)
+    // Make fields nullable since they're initialized in a separate method
+    private IModel? _channel;
+    private IConnection? _connection;
+
+    public RabbitMQProductNameConsumer(IConfiguration configuration,
+                                     ILogger<RabbitMQProductNameConsumer> logger,
+                                     IDistributedCache cache)
     {
-        _configuration = configuration;
-        _logger = logger;
-        _cache = cache;
+        _configuration = configuration ?? throw new ArgumentNullException(nameof(configuration));
+        _logger = logger ?? throw new ArgumentNullException(nameof(logger));
+        _cache = cache ?? throw new ArgumentNullException(nameof(cache));
 
-        string hostName = _configuration["RabbitMQ_HostName"]!;
-        string userName = _configuration["RabbitMQ_UserName"]!;
-        string password = _configuration["RabbitMQ_Password"]!;
-        string portString = _configuration["RabbitMQ_Port"]!;
-
-        Console.WriteLine($"RabbitMQ_HostName: {hostName}");
-        Console.WriteLine($"RabbitMQ_UserName: {userName}");
-        Console.WriteLine($"RabbitMQ_Password: {password}");
-        Console.WriteLine($"RabbitMQ_Port: {portString}");
-
-        int port;
-        if (portString.StartsWith("tcp://"))
-        {
-            var uri = new Uri(portString);
-            port = uri.Port;
-        }
-        else
-        {
-            port = Convert.ToInt32(portString);
-        }
-
-        var connectionFactory = new ConnectionFactory()
-        {
-            HostName = hostName,
-            UserName = userName,
-            Password = password,
-            Port = port
-        };
-
-        _connection = connectionFactory.CreateConnection();
-        _channel = _connection.CreateModel();
+        InitializeRabbitMQConnection();
     }
 
-    public void Consume()
+    private void InitializeRabbitMQConnection()
     {
-        string queueName = "orders.product.update.name.queue";
-
-        var headers = new Dictionary<string, object>()
+        try
         {
-            { "x-match", "all" },
-            { "event", "product.update" },
-            { "RowCount", 1 }
-        };
+            // Get all relevant config values for debugging
+            string hostName = _configuration["RabbitMQ_HostName"] ?? "rabbitmq";
+            string userName = _configuration["RabbitMQ_UserName"] ?? throw new ArgumentNullException("RabbitMQ_UserName");
+            string password = _configuration["RabbitMQ_Password"] ?? throw new ArgumentNullException("RabbitMQ_Password");
+            int port = _configuration.GetValue("RabbitMQ_Port", 5672);
 
-        string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
-        _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
+            _logger.LogInformation("RabbitMQ Connection Details - Host: {Host}, Port: {Port}, User: {User}",
+                hostName, port, userName);
 
-        _channel.QueueDeclare(queue: queueName, durable: true, exclusive: false, autoDelete: false, arguments: null);
-
-        _channel.QueueBind(queue: queueName, exchange: exchangeName, routingKey: string.Empty, arguments: headers);
-
-        var consumer = new EventingBasicConsumer(_channel);
-
-        consumer.Received += async (sender, args) =>
-        {
-            try
+            var connectionFactory = new ConnectionFactory()
             {
-                var body = args.Body.ToArray();
-                var message = Encoding.UTF8.GetString(body);
+                HostName = hostName,
+                UserName = userName,
+                Password = password,
+                Port = port,
+                DispatchConsumersAsync = true,
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10),
+                RequestedConnectionTimeout = TimeSpan.FromSeconds(30) // Add timeout
+            };
 
-                if (!string.IsNullOrWhiteSpace(message))
+            var policy = Policy.Handle<BrokerUnreachableException>()
+                .WaitAndRetry(6, retryAttempt =>
+                    TimeSpan.FromSeconds(Math.Pow(2, retryAttempt)),
+                    (exception, timeSpan, retryCount, context) =>
+                    {
+                        _logger.LogWarning(exception, "RabbitMQ connection attempt {RetryCount}/6 failed. Waiting {WaitTime}s",
+                            retryCount, timeSpan.TotalSeconds);
+                    });
+
+            policy.Execute(() =>
+            {
+                _logger.LogInformation("Attempting RabbitMQ connection...");
+                _connection = connectionFactory.CreateConnection("OrdersService-Connection");
+                _channel = _connection.CreateModel();
+                _logger.LogInformation("Successfully connected to RabbitMQ");
+            });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "Failed to initialize RabbitMQ connection after multiple attempts");
+            throw;
+        }
+    }
+
+    public void Consume() // Implementing the interface method
+    {
+        if (_channel == null || _connection == null)
+        {
+            throw new InvalidOperationException("RabbitMQ connection is not initialized");
+        }
+
+        try
+        {
+            string queueName = "orders.product.update.name.queue";
+            string exchangeName = _configuration["RabbitMQ_Products_Exchange"] ?? "products.exchange";
+
+            _channel.ExchangeDeclare(
+                exchange: exchangeName,
+                type: ExchangeType.Headers,
+                durable: true,
+                autoDelete: false);
+
+            _channel.QueueDeclare(
+                queue: queueName,
+                durable: true,
+                exclusive: false,
+                autoDelete: false,
+                arguments: null);
+
+            var headers = new Dictionary<string, object>
+            {
+                { "x-match", "all" },
+                { "event", "product.update" },
+                { "RowCount", 1 }
+            };
+
+            _channel.QueueBind(
+                queue: queueName,
+                exchange: exchangeName,
+                routingKey: string.Empty,
+                arguments: headers);
+
+            var consumer = new AsyncEventingBasicConsumer(_channel);
+
+            consumer.Received += async (model, ea) =>
+            {
+                try
                 {
-                    ProductDTO? productDTO = JsonSerializer.Deserialize<ProductDTO>(message);
+                    var message = Encoding.UTF8.GetString(ea.Body.ToArray());
+                    _logger.LogDebug("Received product update message: {Message}", message);
 
-                    if (productDTO != null)
-                    {
-                        await HandleProductUpdate(productDTO);
-                    }
-                    else
-                    {
-                        _logger.LogWarning("Received null ProductDTO after deserialization.");
-                    }
+                    var productDTO = JsonSerializer.Deserialize<ProductDTO>(message)
+                        ?? throw new InvalidOperationException("Deserialized product is null");
+
+                    await HandleProductUpdate(productDTO);
+
+                    // Manual acknowledgment
+                    _channel.BasicAck(ea.DeliveryTag, false);
                 }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "Error processing product update message.");
-            }
-        };
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error processing message");
+                    // Reject message and don't requeue
+                    _channel.BasicReject(ea.DeliveryTag, false);
+                }
+            };
 
-        _channel.BasicConsume(queue: queueName, consumer: consumer, autoAck: true);
+            _channel.BasicConsume(
+                queue: queueName,
+                autoAck: false, // Manual acknowledgment
+                consumer: consumer);
+
+            _logger.LogInformation("Started consuming messages from {QueueName}", queueName);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogCritical(ex, "Failed to start consuming messages");
+            throw;
+        }
     }
 
     private async Task HandleProductUpdate(ProductDTO productDTO)
     {
-        _logger.LogInformation($"Product name updated: {productDTO.ProductID}, Product name: {productDTO.ProductName}");
+        try
+        {
+            string cacheKey = $"{ProductCacheKeyPrefix}{productDTO.ProductID}";
+            string productJson = JsonSerializer.Serialize(productDTO);
 
-        string productJson = JsonSerializer.Serialize(productDTO);
+            var options = new DistributedCacheEntryOptions()
+                .SetAbsoluteExpiration(TimeSpan.FromSeconds(400));
 
-        var options = new DistributedCacheEntryOptions()
-            .SetAbsoluteExpiration(TimeSpan.FromSeconds(400));
+            await _cache.SetStringAsync(cacheKey, productJson, options);
 
-        string cacheKey = $"product:{productDTO.ProductID}";
+            _logger.LogInformation("Updated cache for product {ProductId}", productDTO.ProductID);
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Failed to update product cache for {ProductId}", productDTO.ProductID);
+            throw;
+        }
+    }
 
-        await _cache.SetStringAsync(cacheKey, productJson, options);
+    protected virtual void Dispose(bool disposing)
+    {
+        if (_disposed) return;
+
+        if (disposing)
+        {
+            try
+            {
+                _channel?.Close();
+                _connection?.Close();
+                _channel?.Dispose();
+                _connection?.Dispose();
+                _logger.LogInformation("RabbitMQ connection disposed");
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "Error disposing RabbitMQ connection");
+            }
+        }
+
+        _disposed = true;
     }
 
     public void Dispose()
     {
-        _channel?.Dispose();
-        _connection?.Dispose();
+        Dispose(true);
+        GC.SuppressFinalize(this);
     }
 }

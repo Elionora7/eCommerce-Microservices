@@ -5,11 +5,14 @@
       "launchBrowser": true,
         "environmentVariables": {
             "ASPNETCORE_ENVIRONMENT": "Development",
-            "POSTGRES_PORT": "5432",
-            "POSTGRES_DATABASE": "eCommerceUsers",
-            "POSTGRES_USER": "postgres",
-            "POSTGRES_PASSWORD": "P@ssw0rd",
-            "POSTGRES_HOST": "localhost"
+            "POSTGRES_HOST": "", // Will be loaded from .env
+            "POSTGRES_PORT": "", // Will be loaded from .env
+            "POSTGRES_DATABASE": "", // Will be loaded from .env
+            "POSTGRES_USER": "", // Will be loaded from .env
+            "POSTGRES_PASSWORD": "", // Will be loaded from .env
+            "JWT_KEY": "", // Will be loaded from .env
+            "JWT_ISSUER": "", // Will be loaded from .env
+            "JWT_AUDIENCE": "" // Will be loaded from .env
         },
       "dotnetRunMessages": true,
       "applicationUrl": "http://localhost:5032"
@@ -19,11 +22,14 @@
       "launchBrowser": true,
         "environmentVariables": {
             "ASPNETCORE_ENVIRONMENT": "Development",
-            "POSTGRES_PORT": "5432",
-            "POSTGRES_DATABASE": "eCommerceUsers",
-            "POSTGRES_USER": "postgres",
-            "POSTGRES_PASSWORD": "P@ssw0rd",
-            "POSTGRES_HOST": "localhost"
+            "POSTGRES_HOST": "", // Will be loaded from .env
+            "POSTGRES_PORT": "", // Will be loaded from .env
+            "POSTGRES_DATABASE": "", // Will be loaded from .env
+            "POSTGRES_USER": "", // Will be loaded from .env
+            "POSTGRES_PASSWORD": "", // Will be loaded from .env
+            "JWT_KEY": "", // Will be loaded from .env
+            "JWT_ISSUER": "", // Will be loaded from .env
+            "JWT_AUDIENCE": "" // Will be loaded from .env
         },
       "dotnetRunMessages": true,
       "applicationUrl": "https://localhost:7208;http://localhost:5092"
@@ -42,12 +48,15 @@
         "environmentVariables": {
             "ASPNETCORE_HTTPS_PORTS": "8081",
             "ASPNETCORE_HTTP_PORTS": "8080",
-            "POSTGRES_PORT": "5432",
-            "POSTGRES_DATABASE": "eCommerceUsers",
-            "POSTGRES_USER": "postgres",
-            "POSTGRES_PASSWORD": "P@ssw0rd",
-            "POSTGRES_HOST": "localhost"
-
+            "ASPNETCORE_ENVIRONMENT": "Development",
+            "POSTGRES_HOST": "",
+            "POSTGRES_PORT": "",
+            "POSTGRES_DATABASE": "",
+            "POSTGRES_USER": "",
+            "POSTGRES_PASSWORD": "",
+            "JWT_KEY": "",
+            "JWT_ISSUER": "",
+            "JWT_AUDIENCE": ""
         },
       "publishAllPorts": true,
       "useSSL": true

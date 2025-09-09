@@ -6,11 +6,13 @@ public record AuthenticationResponse(
   string? Name,
   string? Gender,
   string? Token,
-  bool Success
+  bool Success,
+  string? RefreshToken,
+  DateTime? RefreshTokenExpiryTime
   )
 {
     //Parametrless constructor
-    public AuthenticationResponse():this(default,default,default, default, default, default)
+    public AuthenticationResponse():this(default,default,default, default, default, default,default,default)
 {
 }
 }

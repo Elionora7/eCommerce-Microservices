@@ -20,7 +20,7 @@ public static class DependencyInjection
 
         services.AddTransient<IUsersService, UsersService>();
         services.AddValidatorsFromAssemblyContaining<LoginRequestValidator>();
-
+        services.AddScoped<IJwtService, JwtService>();
         return services;
     }
 }

@@ -15,15 +15,27 @@ namespace eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ
         {
             _configuration = configuration;
 
-            string hostName = _configuration["RabbitMQ_HostName"]!;
-            string userName = _configuration["RabbitMQ_UserName"]!;
-            string password = _configuration["RabbitMQ_Password"]!;
-            string portString = _configuration["RabbitMQ_Port"]!;
+            // Support both naming : Docker Compose and .env 
+            string hostName = _configuration["RabbitMQ_HostName"]
+                ?? _configuration["RABBITMQ_HOSTNAME"]
+                ?? throw new InvalidOperationException("RabbitMQ hostname is required. Set RabbitMQ_HostName or RABBITMQ_HOSTNAME");
 
-            Console.WriteLine($"RabbitMQ_HostName: {hostName}");
-            Console.WriteLine($"RabbitMQ_UserName: {userName}");
-            Console.WriteLine($"RabbitMQ_Password: {password}");
-            Console.WriteLine($"RabbitMQ_Port: {portString}");
+            string userName = _configuration["RabbitMQ_UserName"]
+                ?? _configuration["RABBITMQ_USERNAME"]
+                ?? throw new InvalidOperationException("RabbitMQ username is required. Set RabbitMQ_UserName or RABBITMQ_USERNAME");
+
+            string password = _configuration["RabbitMQ_Password"]
+                ?? _configuration["RABBITMQ_PASSWORD"]
+                ?? throw new InvalidOperationException("RabbitMQ password is required. Set RabbitMQ_Password or RABBITMQ_PASSWORD");
+
+            string portString = _configuration["RabbitMQ_Port"]
+                ?? _configuration["RABBITMQ_PORT"]
+                ?? "5672"; // Default RabbitMQ port
+
+            string exchangeName = _configuration["RabbitMQ_Products_Exchange"]
+                ?? _configuration["RABBITMQ_PRODUCTS_EXCHANGE"]
+                ?? "products_exchange"; // Default exchange name
+
 
             int port;
             if (portString.StartsWith("tcp://"))
@@ -41,45 +53,83 @@ namespace eCommerce.ProductsService.BusinessLogicLayer.RabbitMQ
                 HostName = hostName,
                 UserName = userName,
                 Password = password,
-                Port = port
+                Port = port,
+                DispatchConsumersAsync = true,
+                AutomaticRecoveryEnabled = true,
+                NetworkRecoveryInterval = TimeSpan.FromSeconds(10)
             };
 
             try
             {
-            _connection = factory.CreateConnection();
-            _channel = _connection.CreateModel();
+                _connection = factory.CreateConnection();
+                _channel = _connection.CreateModel();
 
-            // Declare exchange on startup (idempotent)
-            string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
-            _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
+                _channel.ExchangeDeclare(
+                    exchange: exchangeName,
+                    type: ExchangeType.Headers,
+                    durable: true,
+                    autoDelete: false);
+
+                Console.WriteLine($"RabbitMQ connection established to {hostName}:{port}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to connect to RabbitMQ: {ex.Message}");
+                throw;
+            }
         }
 
         public void Publish<T>(Dictionary<string, object> headers, T message)
         {
-            string messageJson = JsonSerializer.Serialize(message);
-            byte[] messageBody = Encoding.UTF8.GetBytes(messageJson);
+            if (_channel?.IsOpen != true)
+            {
+                throw new InvalidOperationException("RabbitMQ channel is not open");
+            }
 
-            string exchangeName = _configuration["RabbitMQ_Products_Exchange"]!;
+            
+            string exchangeName = _configuration["RabbitMQ_Products_Exchange"]
+                ?? _configuration["RABBITMQ_PRODUCTS_EXCHANGE"]
+                ?? "products_exchange";
 
-            // Declare exchange again for idempotency/safety
-            _channel.ExchangeDeclare(exchange: exchangeName, type: ExchangeType.Headers, durable: true);
+            try
+            {
+                string messageJson = JsonSerializer.Serialize(message);
+                byte[] messageBody = Encoding.UTF8.GetBytes(messageJson);
 
-            var basicProperties = _channel.CreateBasicProperties();
-            basicProperties.Headers = headers;
+                var basicProperties = _channel.CreateBasicProperties();
+                basicProperties.Headers = headers;
+                basicProperties.Persistent = true;
 
-            _channel.BasicPublish(
-                exchange: exchangeName,
-                routingKey: string.Empty,
-                basicProperties: basicProperties,
-                body: messageBody);
+                _channel.BasicPublish(
+                    exchange: exchangeName,
+                    routingKey: string.Empty,
+                    mandatory: true,
+                    basicProperties: basicProperties,
+                    body: messageBody);
+
+                Console.WriteLine($"Message published to exchange: {exchangeName}");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Failed to publish message: {ex.Message}");
+                throw;
+            }
         }
 
         public void Dispose()
         {
-            _channel?.Close();
-            _channel?.Dispose();
-            _connection?.Close();
-            _connection?.Dispose();
+            try
+            {
+                _channel?.Close();
+                _channel?.Dispose();
+                _connection?.Close();
+                _connection?.Dispose();
+                Console.WriteLine("RabbitMQ connection disposed");
+            }
+            catch (Exception ex)
+            {
+                Console.WriteLine($"Error disposing RabbitMQ resources: {ex.Message}");
+            }
         }
     }
 }

@@ -1,150 +1,160 @@
-
-
 services:
-  ordersmicroserviceapi:
-    image: ordersmicroserviceapi
+  orders-microservice:
     build:
       context: .
       dockerfile: OrdersMicroserviceAPI/Dockerfile
-
+    image: ordersmicroserviceapi:latest
+    env_file: ../.env
     environment:
-    - MONGODB_HOST=mongodb-container
-    - MONGODB_PORT=27017
-    - MONGODB_DATABASE=OrdersDatabase
-    - UserMicroServiceName=apigateway
-    - UserMicroServicePort=8080
-    - ProductMicroServiceName=apigateway
-    - ProductMicroServicePort=8080
-    - REDIS_HOST=redis
-    - REDIS_PORT=6379
-    - RabbitMQ_HostName=rabbitmq
-    - RabbitMQ_UserName=user
-    - RabbitMQ_Password=P@ssw0rd
-    - RabbitMQ_Port=5672
-    - RabbitMQ_Products_Exchange=products.exchange
+      - MONGODB_HOST=${MONGODB_HOST}
+      - MONGODB_PORT=${MONGODB_PORT}
+      - MONGODB_DATABASE=${MONGODB_DATABASE}
+      - UserMicroServiceName=apigateway
+      - UserMicroServicePort=8080
+      - ProductMicroServiceName=apigateway
+      - ProductMicroServicePort=8080
+      - REDIS_HOST=${REDIS_HOST}
+      - REDIS_PORT=${REDIS_PORT}
+      - RabbitMQ_HostName=${RABBITMQ_HOSTNAME}
+      - RabbitMQ_UserName=${RABBITMQ_USERNAME}
+      - RabbitMQ_Password=${RABBITMQ_PASSWORD}
+      - RabbitMQ_Port=${RABBITMQ_PORT}
+      - RabbitMQ_Products_Exchange=${RABBITMQ_PRODUCTS_EXCHANGE}
+      - Jwt__Key=${JWT_KEY} 
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
     ports:
-    - "7000:8080"
+      - "7000:8080"
     networks:
-     - orders-mongodb-network
-     - ecommerce-network
+      - orders-mongodb-network
+      - ecommerce-network
     depends_on:
-     - mongodb-container
-
+      - mongodb-container
+      - rabbitmq
 
   mongodb-container:
-   image: mongo:latest
-   ports:
-    - "27017:27017"
-   volumes:
-    - ../mongodb/mongodb-init:/docker-entrypoint-initdb.d
-   networks:
-    - orders-mongodb-network
-     
+    image: mongo:latest
+    ports:
+      - "27017:27017"
+    volumes:
+      - ../mongodb/mongodb-init:/docker-entrypoint-initdb.d
+    networks:
+      - orders-mongodb-network
 
   products-microservice:
-   image: products-microservice:latest
-   environment:
-    - ASPNETCORE_HTTP_PORTS=8080
-    - ASPNETCORE_ENVIRONMENT=Development
-    - MYSQL_HOST=mysql-container
-    - MYSQL_PORT=3306
-    - MYSQL_DATABASE=ecommerceproductsdatabase
-    - MYSQL_USER=root
-    - MYSQL_PASSWORD=P@ssw0rd
-    - RabbitMQ_HostName=rabbitmq
-    - RabbitMQ_UserName=user
-    - RabbitMQ_Password=P@ssw0rd
-    - RabbitMQ_Port=5672
-    - RabbitMQ_Products_Exchange=products.exchange
-   ports:
-    - "6002:8080"
-   networks:
-    - products-mysql-network
-    - ecommerce-network
-   depends_on:
-    - mysql-container
-  
+    image: products-microservice:latest
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_ENVIRONMENT=Development
+      - MYSQL_HOST=${MYSQL_HOST}
+      - MYSQL_PORT=${MYSQL_PORT}
+      - MYSQL_DATABASE=${MYSQL_DATABASE}
+      - MYSQL_USER=${MYSQL_USER}
+      - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+      - RabbitMQ_HostName=${RABBITMQ_HOSTNAME}
+      - RabbitMQ_UserName=${RABBITMQ_USERNAME}
+      - RabbitMQ_Password=${RABBITMQ_PASSWORD}
+      - RabbitMQ_Port=${RABBITMQ_PORT}
+      - RabbitMQ_Products_Exchange=${RABBITMQ_PRODUCTS_EXCHANGE}
+    ports:
+      - "6002:8080"
+    networks:
+      - products-mysql-network
+      - ecommerce-network
+    depends_on:
+      - mysql-container
+      - rabbitmq
 
   mysql-container:
-   image: mysql:8.0
-   environment:
-    - MYSQL_ROOT_PASSWORD=P@ssw0rd
-   ports:
-    - "3306:3306"
-   volumes:
-    - ../mysql/mysql-init:/docker-entrypoint-initdb.d
-   networks:
-    - products-mysql-network
-
+    image: mysql:8.0
+    environment:
+      - MYSQL_ROOT_PASSWORD=${MYSQL_PASSWORD}
+    ports:
+      - "3306:3306"
+    volumes:
+      - ../mysql/mysql-init:/docker-entrypoint-initdb.d
+    networks:
+      - products-mysql-network
 
   users-microservice:
-   image: users-microservice:latest
-   environment:
-    - ASPNETCORE_HTTP_PORTS=8080
-    - ASPNETCORE_HTTP_ENVIRONMENT=Development
-    - POSTGRES_HOST=postgres-container
-    - POSTGRES_PORT=5432
-    - POSTGRES_DATABASE=eCommerceUsers
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=P@ssw0rd
-   ports:
-    - "5000:9090"
-   networks:
-    - users-postgres-network
-    - ecommerce-network
-   depends_on:
-    - postgres-container
-
+    image: users-microservice:latest
+    env_file: ../.env
+    environment:
+      - ASPNETCORE_HTTP_PORTS=8080
+      - ASPNETCORE_HTTP_ENVIRONMENT=Development
+      - POSTGRES_HOST=${POSTGRES_HOST}
+      - POSTGRES_PORT=${POSTGRES_PORT}
+      - POSTGRES_DATABASE=${POSTGRES_DATABASE}
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - Jwt__Key=${JWT_KEY} 
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+    ports:
+      - "5000:9090"
+    networks:
+      - users-postgres-network
+      - ecommerce-network
+    depends_on:
+      - postgres-container
 
   postgres-container:
-   image: postgres:13
-   environment:
-    - POSTGRES_USER=postgres
-    - POSTGRES_PASSWORD=P@ssw0rd
-    - POSTGRES_DB=eCommerceUsers
-   ports:
-    - "5433:5432"
-   volumes:
-    - ../postgres/postgres-init:/docker-entrypoint-initdb.d
-   networks:
-    - users-postgres-network
+    image: postgres:13
+    env_file: ../.env
+    environment:
+      - POSTGRES_USER=${POSTGRES_USER}
+      - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+      - POSTGRES_DB=${POSTGRES_DATABASE}
+    ports:
+      - "5433:5432"
+    volumes:
+      - ../postgres/postgres-init:/docker-entrypoint-initdb.d
+    networks:
+      - users-postgres-network
 
   redis:
-   image: redis:latest
-   ports:
-    - "6379:6379"
-   volumes:
-    - c:/microservices/redis-cache:/data
-   networks:
-    - ecommerce-network
+    image: redis:latest
+    ports:
+      - "6379:6379"
+    volumes:
+      - c:/microservices/redis-cache:/data
+    networks:
+      - ecommerce-network
 
   apigateway:
-   image: apigateway
-   build:
-    context: ./APIGateway
-    dockerfile: Dockerfile
-   ports:
-    - "4500:8080"
-   networks:
-    - orders-mongodb-network
-    - ecommerce-network
+    build:
+      context: .
+      dockerfile: APIGateway/Dockerfile
+    image: apigateway:latest
+    env_file: ../.env
+    environment: 
+      - Jwt__Key=${JWT_KEY} 
+      - Jwt__Issuer=${JWT_ISSUER}
+      - Jwt__Audience=${JWT_AUDIENCE}
+    ports:
+      - "4500:8080"
+    networks:
+      - orders-mongodb-network
+      - ecommerce-network
 
   rabbitmq:
-   image: rabbitmq:4.1.1-management
-   ports:
-    - "5672:5672"
-    - "15672:15672"
-   environment:
-    - RABBITMQ_DEFAULT_USER=user
-    - RABBITMQ_DEFAULT_PASS=P@ssw0rd
-   networks:
-    - ecommerce-network
+    image: rabbitmq:4.1.1-management
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+    env_file: ../.env
+    environment:
+      - RABBITMQ_DEFAULT_USER=${RABBITMQ_USERNAME}
+      - RABBITMQ_DEFAULT_PASS=${RABBITMQ_PASSWORD}
+    networks:
+      - ecommerce-network
+
 networks:
- orders-mongodb-network:
-  driver: bridge
- products-mysql-network:
-  driver: bridge
- users-postgres-network:
-  driver: bridge
- ecommerce-network:
-  driver: bridge
+  orders-mongodb-network:
+    driver: bridge
+  products-mysql-network:
+    driver: bridge
+  users-postgres-network:
+    driver: bridge
+  ecommerce-network:
+    driver: bridge

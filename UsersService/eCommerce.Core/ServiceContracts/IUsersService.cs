@@ -23,9 +23,17 @@ public interface IUsersService
     Task<AuthenticationResponse?> Register(RegisterRequest registerRequest);
 
     /// <summary>
-    /// Retrun UserDTO object based on the Userid 
+    /// Return UserDTO object based on the Userid 
     /// </summary>
     /// <param name="userId"></param>
     /// <returns>UserDTO object</returns>
     Task<UserDTO> GetUserByUserID(Guid? userId);
+
+    /// <summary>
+    /// Return UserDTO object based on the refreshToken 
+    /// </summary>
+    /// <param name="refreshRequest"></param>
+    /// <returns>UserDTO object</returns>
+    Task<AuthenticationResponse?> RefreshToken(RefreshTokenRequest refreshRequest);
+    
 }

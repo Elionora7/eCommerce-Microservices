@@ -29,4 +29,13 @@ public interface IUsersRepository
     /// <param name="userId"></param>
     /// <returns>ApplicationUser Object</returns>
     Task<ApplicationUser?> GetUserByUserID(Guid? userId);
+
+    /// <summary>
+    /// Return user data information based on refreshToken
+    /// </summary>
+    /// <param name="refreshToken"></param>
+    /// <returns>ApplicationUser Object</returns>
+    Task<ApplicationUser?> GetUserByRefreshToken(string refreshToken);
+
+    Task<bool> UpdateUser(ApplicationUser user); 
 }

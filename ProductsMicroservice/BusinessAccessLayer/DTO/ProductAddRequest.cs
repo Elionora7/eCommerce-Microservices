@@ -1,10 +1,11 @@
-﻿using BusinessLogicLayer.DTO;
+﻿using eCommerce.BusinessLogicLayer.DTO;
+using Microsoft.AspNetCore.Mvc;
 
 namespace eCommerce.BusinessLogicLayer.DTO;
 
-public record ProductAddRequest(string ProductName, CategoryOptions Category, double? UnitPrice, int? QuantityInStock)
-{
-    public ProductAddRequest() : this(default, default, default, default)
-    {
-    }
-}
+public record ProductAddRequest(
+    string ProductName,
+    CategoryOptions Category,
+    double? UnitPrice,
+    int? QuantityInStock,
+    string? imgUrl);

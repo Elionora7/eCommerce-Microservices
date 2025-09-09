@@ -8,11 +8,13 @@ public record ApplicationUser(
   string? Email,
   string? Password,
   string? Name,
-  string? Gender
+  string? Gender,
+  string? RefreshToken,
+  DateTime? RefreshTokenExpiryTime
   )
 {
     //Parameterless constructor
-    public ApplicationUser() : this(default, default, default, default, default)
+    public ApplicationUser() : this(default, default, default, default, default,default,default)
     {
     }
 }

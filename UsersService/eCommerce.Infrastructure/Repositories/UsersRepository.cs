@@ -14,42 +14,61 @@ internal class UsersRepository : IUsersRepository
     {
         _dbContext = dbContext;
     }
+
     public async Task<ApplicationUser?> AddUser(ApplicationUser user)
     {
-        //Generate a new unique user ID for the user
-        //user.UserID = Guid.NewGuid();
+        string query = @"
+            INSERT INTO public.""Users""(
+                ""UserID"", ""Email"", ""Name"", ""Gender"", ""Password"", ""RefreshToken"", ""RefreshTokenExpiryTime""
+            ) VALUES (
+                @UserID, @Email, @Name, @Gender, @Password, @RefreshToken, @RefreshTokenExpiryTime
+            )";
 
-        // SQL Query to insert user data into the "Users" table.
-        string query = "INSERT INTO public.\"Users\"(\"UserID\", \"Email\", \"Name\", \"Gender\", \"Password\") VALUES(@UserID, @Email, @Name, @Gender, @Password)";
         int rowCountAffected = await _dbContext.DbConnection.ExecuteAsync(query, user);
 
-        if (rowCountAffected > 0)
-        {
-            return user;
-        }
-        else
-        {
-            return null;
-        }
+        return rowCountAffected > 0 ? user : null;
     }
 
     public async Task<ApplicationUser?> GetUserByEmailAndPassword(string? email, string? password)
     {
-        //SQL query to select a user by Email and Password
         string query = "SELECT * FROM public.\"Users\" WHERE \"Email\"=@Email AND \"Password\"=@Password";
         var parameters = new { Email = email, Password = password };
 
-        ApplicationUser? user = await _dbContext.DbConnection.QueryFirstOrDefaultAsync<ApplicationUser>(query, parameters);
-
-        return user;
+        return await _dbContext.DbConnection.QueryFirstOrDefaultAsync<ApplicationUser>(query, parameters);
     }
 
     public async Task<ApplicationUser?> GetUserByUserID(Guid? userId)
     {
-        var query = "SELECT * FROM public.\"Users\" WHERE \"UserID\" = @UserID";
+        string query = "SELECT * FROM public.\"Users\" WHERE \"UserID\" = @UserID";
         var parameters = new { UserID = userId };
 
-        using var connection = _dbContext.DbConnection;
-        return await connection.QueryFirstOrDefaultAsync<ApplicationUser>(query, parameters);
+        return await _dbContext.DbConnection.QueryFirstOrDefaultAsync<ApplicationUser>(query, parameters);
     }
+    public async Task<ApplicationUser?> GetUserByRefreshToken(string refreshToken)
+    {
+        string query = @"SELECT * FROM public.""Users"" 
+                     WHERE ""RefreshToken"" = @RefreshToken";
+        var parameters = new { RefreshToken = refreshToken };
+
+        return await _dbContext.DbConnection
+            .QueryFirstOrDefaultAsync<ApplicationUser>(query, parameters);
+    }
+
+    public async Task<bool> UpdateUser(ApplicationUser user)
+    {
+        string query = @"
+        UPDATE public.""Users""
+        SET ""Email"" = @Email,
+            ""Name"" = @Name,
+            ""Gender"" = @Gender,
+            ""Password"" = @Password,
+            ""RefreshToken"" = @RefreshToken,
+            ""RefreshTokenExpiryTime"" = @RefreshTokenExpiryTime
+        WHERE ""UserID"" = @UserID";
+
+        int rows = await _dbContext.DbConnection.ExecuteAsync(query, user);
+        return rows > 0;
+    }
+
+
 }

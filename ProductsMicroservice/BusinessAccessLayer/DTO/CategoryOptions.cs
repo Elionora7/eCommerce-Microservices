@@ -1,8 +1,8 @@
 ﻿
-namespace BusinessLogicLayer.DTO
+namespace eCommerce.BusinessLogicLayer.DTO
 {
     public enum CategoryOptions
     {
-        Electronics, HomeAppliances, Furniture, Accessories
+        Electronics, HomeAppliances, Furniture, Accessories, Sportswear
     }
 }

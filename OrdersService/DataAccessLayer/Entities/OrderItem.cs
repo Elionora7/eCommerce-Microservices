@@ -19,5 +19,8 @@ namespace eCommerce.OrdersMicroservice.DataAccessLayer.Entities
 
         [BsonRepresentation(MongoDB.Bson.BsonType.Double)]
         public decimal TotalPrice { get; set; }
+
+        [BsonElement("ImgUrl")]
+        public string ImgUrl { get; set; } = string.Empty;
     }
 }

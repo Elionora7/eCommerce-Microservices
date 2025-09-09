@@ -1,5 +1,6 @@
 ﻿
 using eCommerce.Core.DTO;
+using eCommerce.Core.RepositoryContracts;
 using eCommerce.Core.ServiceContracts;
 using Microsoft.AspNetCore.Http;
 using Microsoft.AspNetCore.Mvc;
@@ -11,15 +12,18 @@ namespace eCommerce.API.Controllers
     public class AuthController : ControllerBase
     {
         private readonly IUsersService _usersService;
+        private readonly IJwtService _jwtService;
 
-        public AuthController(IUsersService usersService)
+        public AuthController(IUsersService usersService, IJwtService jwtService)
         {
             _usersService = usersService;
+            _jwtService = jwtService;
         }
+
 
         //Endpoint for user registration usecase
         //POST api/auth/register
-        [HttpPost("register")] 
+        [HttpPost("register")]
         public async Task<IActionResult> Register(RegisterRequest registerRequest)
         {
             //Check for invalid registerRequest
@@ -36,7 +40,13 @@ namespace eCommerce.API.Controllers
                 return BadRequest(authenticationResponse);
             }
 
-            return Ok(authenticationResponse);
+            var token = _jwtService.GenerateToken(authenticationResponse);
+
+
+            var responseWithToken = authenticationResponse with { Success = true, Token = token };
+
+            return Ok(responseWithToken);
+
         }
 
 
@@ -58,7 +68,29 @@ namespace eCommerce.API.Controllers
                 return Unauthorized(authenticationResponse);
             }
 
-            return Ok(authenticationResponse);
+            // Generate JWT token for the authenticated user
+            var token = _jwtService.GenerateToken(authenticationResponse);
+
+            var responseWithToken = authenticationResponse with { Success = true, Token = token };
+
+            return Ok(responseWithToken);
         }
+
+        //Endpoint for user refresh-token usecase
+        //POST /api/auth/refresh-token
+        [HttpPost("refresh-token")]
+        public async Task<IActionResult> RefreshToken([FromBody] RefreshTokenRequest request)
+        {
+            var result = await _usersService.RefreshToken(request);
+
+            if (result == null)
+                return Unauthorized(new { message = "Invalid or expired refresh token" });
+
+            return Ok(result);
+        }
+
+
+
+
     }
 }

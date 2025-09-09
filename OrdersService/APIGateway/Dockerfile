@@ -6,27 +6,23 @@ FROM mcr.microsoft.com/dotnet/sdk:8.0 AS build
 ARG BUILD_CONFIGURATION=Release
 WORKDIR /src
 
-# Copy only the APIGateway project files first for restore
-COPY APIGateway/APIGateway.csproj ./APIGateway/
+# Copy project files using absolute source paths
+COPY ["APIGateway/APIGateway.csproj", "APIGateway/"]
+COPY ["BusinessLogicLayer/BusinessLogicLayer.csproj", "BusinessLogicLayer/"]
+COPY ["OrdersMicroserviceAPI/OrdersMicroserviceAPI.csproj", "OrdersMicroserviceAPI/"]
 
-# If your APIGateway project depends on other projects (e.g. BusinessLogicLayer), copy those too
-COPY BusinessLogicLayer/ ./BusinessLogicLayer/
-COPY OrdersMicroserviceAPI/ ./OrdersMicroserviceAPI/
+RUN dotnet restore "APIGateway/APIGateway.csproj"
 
-# Restore packages for the solution or project
-RUN dotnet restore ./APIGateway/APIGateway.csproj
+# Copy remaining files with absolute paths
+COPY ["APIGateway/", "APIGateway/"]
+COPY ["BusinessLogicLayer/", "BusinessLogicLayer/"]
+COPY ["OrdersMicroserviceAPI/", "OrdersMicroserviceAPI/"]
 
-# Now copy all source code of APIGateway (and dependencies if needed)
-COPY APIGateway/ ./APIGateway/
-COPY BusinessLogicLayer/ ./BusinessLogicLayer/
-COPY OrdersMicroserviceAPI/ ./OrdersMicroserviceAPI/
-
-# Build the APIGateway project
-RUN dotnet build ./APIGateway/APIGateway.csproj -c $BUILD_CONFIGURATION -o /app/build
+RUN dotnet build "APIGateway/APIGateway.csproj" -c $BUILD_CONFIGURATION -o /app/build
 
 FROM build AS publish
 ARG BUILD_CONFIGURATION=Release
-RUN dotnet publish ./APIGateway/APIGateway.csproj -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
+RUN dotnet publish "APIGateway/APIGateway.csproj" -c $BUILD_CONFIGURATION -o /app/publish /p:UseAppHost=false
 
 FROM base AS final
 WORKDIR /app

@@ -1,12 +1,12 @@
--- Create the table if it does not exist
--- Create the table if it does not exist
-CREATE TABLE public."Users"
+CREATE TABLE IF NOT EXISTS public."Users"
 (
     "UserID" uuid NOT NULL,
-    "Name" character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    "Email" character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    "Password" character varying(50) COLLATE pg_catalog."default" NOT NULL,
-    "Gender" character varying(15) COLLATE pg_catalog."default",
+    "Name" character varying(50) NOT NULL,
+    "Email" character varying(50) NOT NULL UNIQUE,
+    "Password" character varying(50) NOT NULL,
+    "Gender" character varying(15),
+    "RefreshToken" TEXT,
+    "RefreshTokenExpiryTime" TIMESTAMP,
     CONSTRAINT "Users_pkey" PRIMARY KEY ("UserID")
 );
 

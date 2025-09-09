@@ -10,13 +10,15 @@ var orders = [
                 "ProductID": "1a9df78b-3f46-4c3d-9f2a-1b9f69292a77",
                 "UnitPrice": 1299.99,
                 "Quantity": 1,
-                "TotalPrice": 1299.99
+                "TotalPrice": 1299.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400"
             },
             {
                 "ProductID": "2c8e8e7c-97a3-4b11-9a1b-4dbe681cfe17",
                 "UnitPrice": 1499.99,
                 "Quantity": 1,
-                "TotalPrice": 1499.99
+                "TotalPrice": 1499.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400"
             }
         ]
     },
@@ -31,13 +33,15 @@ var orders = [
                 "ProductID": "3f3e8b3a-4a50-4cd0-8d8e-1e178ae2cfc1",
                 "UnitPrice": 249.99,
                 "Quantity": 1,
-                "TotalPrice": 249.99
+                "TotalPrice": 249.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400"
             },
             {
                 "ProductID": "4c9b6f71-6c5d-485f-8db2-58011a236b63",
                 "UnitPrice": 179.99,
                 "Quantity": 4,
-                "TotalPrice": 719.96
+                "TotalPrice": 719.96,
+                "ImgUrl": "https://images.unsplash.com/photo-1533090368676-1fd25485db88?w=400"
             }
         ]
     },
@@ -52,13 +56,15 @@ var orders = [
                 "ProductID": "3f3e8b3a-4a50-4cd0-8d8e-1e178ae2cfc1",
                 "UnitPrice": 249.99,
                 "Quantity": 10,
-                "TotalPrice": 2499.90
+                "TotalPrice": 2499.90,
+                "ImgUrl": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400"
             },
             {
                 "ProductID": "2c8e8e7c-97a3-4b11-9a1b-4dbe681cfe17",
                 "UnitPrice": 1499.99,
                 "Quantity": 2,
-                "TotalPrice": 2999.98
+                "TotalPrice": 2999.98,
+                "ImgUrl": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400"
             }
         ]
     },
@@ -73,13 +79,15 @@ var orders = [
                 "ProductID": "4c9b6f71-6c5d-485f-8db2-58011a236b63",
                 "UnitPrice": 179.99,
                 "Quantity": 3,
-                "TotalPrice": 539.97
+                "TotalPrice": 539.97,
+                "ImgUrl": "https://images.unsplash.com/photo-1533090368676-1fd25485db88?w=400"
             },
             {
                 "ProductID": "2c8e8e7c-97a3-4b11-9a1b-4dbe681cfe17",
                 "UnitPrice": 1499.99,
                 "Quantity": 3,
-                "TotalPrice": 4499.97
+                "TotalPrice": 4499.97,
+                "ImgUrl": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400"
             }
         ]
     },
@@ -94,13 +102,15 @@ var orders = [
                 "ProductID": "1a9df78b-3f46-4c3d-9f2a-1b9f69292a77",
                 "UnitPrice": 1299.99,
                 "Quantity": 5,
-                "TotalPrice": 6499.95
+                "TotalPrice": 6499.95,
+                "ImgUrl": "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400"
             },
             {
                 "ProductID": "4c9b6f71-6c5d-485f-8db2-58011a236b63",
                 "UnitPrice": 179.99,
                 "Quantity": 1,
-                "TotalPrice": 179.99
+                "TotalPrice": 179.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1533090368676-1fd25485db88?w=400"
             }
         ]
     },
@@ -115,13 +125,15 @@ var orders = [
                 "ProductID": "3f3e8b3a-4a50-4cd0-8d8e-1e178ae2cfc1",
                 "UnitPrice": 249.99,
                 "Quantity": 2,
-                "TotalPrice": 499.98
+                "TotalPrice": 499.98,
+                "ImgUrl": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400"
             },
             {
                 "ProductID": "4c9b6f71-6c5d-485f-8db2-58011a236b63",
                 "UnitPrice": 179.99,
                 "Quantity": 2,
-                "TotalPrice": 359.98
+                "TotalPrice": 359.98,
+                "ImgUrl": "https://images.unsplash.com/photo-1533090368676-1fd25485db88?w=400"
             }
         ]
     },
@@ -136,13 +148,15 @@ var orders = [
                 "ProductID": "1a9df78b-3f46-4c3d-9f2a-1b9f69292a77",
                 "UnitPrice": 1299.99,
                 "Quantity": 2,
-                "TotalPrice": 2599.98
+                "TotalPrice": 2599.98,
+                "ImgUrl": "https://images.unsplash.com/photo-1592899677977-9c10ca588bbd?w=400"
             },
             {
                 "ProductID": "3f3e8b3a-4a50-4cd0-8d8e-1e178ae2cfc1",
                 "UnitPrice": 249.99,
                 "Quantity": 1,
-                "TotalPrice": 249.99
+                "TotalPrice": 249.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1586023492125-27b2c045efd7?w=400"
             }
         ]
     },
@@ -157,13 +171,15 @@ var orders = [
                 "ProductID": "5d7e36bf-65c3-4a71-bf97-740d561d8b65",
                 "UnitPrice": 1999.99,
                 "Quantity": 1,
-                "TotalPrice": 1999.99
+                "TotalPrice": 1999.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400"
             },
             {
                 "ProductID": "2c8e8e7c-97a3-4b11-9a1b-4dbe681cfe17",
                 "UnitPrice": 1499.99,
                 "Quantity": 5,
-                "TotalPrice": 7499.95
+                "TotalPrice": 7499.95,
+                "ImgUrl": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400"
             }
         ]
     },
@@ -178,13 +194,15 @@ var orders = [
                 "ProductID": "2c8e8e7c-97a3-4b11-9a1b-4dbe681cfe17",
                 "UnitPrice": 1499.99,
                 "Quantity": 1,
-                "TotalPrice": 1499.99
+                "TotalPrice": 1499.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1610945265064-0e34e5519bbf?w=400"
             },
             {
                 "ProductID": "5d7e36bf-65c3-4a71-bf97-740d561d8b65",
                 "UnitPrice": 1499.99,
                 "Quantity": 1,
-                "TotalPrice": 1499.99
+                "TotalPrice": 1499.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400"
             }
         ]
     },
@@ -199,19 +217,22 @@ var orders = [
                 "ProductID": "5d7e36bf-65c3-4a71-bf97-740d561d8b65",
                 "UnitPrice": 1999.99,
                 "Quantity": 3,
-                "TotalPrice": 5999.97
+                "TotalPrice": 5999.97,
+                "ImgUrl": "https://images.unsplash.com/photo-1593359677879-a4bb92f829d1?w=400"
             },
             {
                 "ProductID": "6a14f510-72c1-42c8-9a5a-8ef8f3f45a0d",
                 "UnitPrice": 49.99,
                 "Quantity": 7,
-                "TotalPrice": 3499.3
+                "TotalPrice": 3499.3,
+                "ImgUrl": "https://images.unsplash.com/photo-1542291026-7eec264c27ff?w=400"
             },
             {
                 "ProductID": "4c9b6f71-6c5d-485f-8db2-58011a236b63",
                 "UnitPrice": 179.99,
                 "Quantity": 1,
-                "TotalPrice": 179.99
+                "TotalPrice": 179.99,
+                "ImgUrl": "https://images.unsplash.com/photo-1533090368676-1fd25485db88?w=400"
             }
         ]
     }

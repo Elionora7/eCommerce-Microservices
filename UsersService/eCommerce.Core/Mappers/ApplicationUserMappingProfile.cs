@@ -13,8 +13,11 @@ public class ApplicationUserMappingProfile : Profile
           .ForMember(dest => dest.Email, opt => opt.MapFrom(src => src.Email))
           .ForMember(dest => dest.Name, opt => opt.MapFrom(src => src.Name))
           .ForMember(dest => dest.Gender, opt => opt.MapFrom(src => src.Gender))
-          .ForMember(dest => dest.Success, opt => opt.Ignore())
+          .ForMember(dest => dest.RefreshToken, opt => opt.MapFrom(src => src.RefreshToken))
+          .ForMember(dest => dest.RefreshTokenExpiryTime, opt => opt.MapFrom(src => src.RefreshTokenExpiryTime))
           .ForMember(dest => dest.Token, opt => opt.Ignore())
+          .ForMember(dest => dest.Success, opt => opt.Ignore())
+          
           ;
     }
 }

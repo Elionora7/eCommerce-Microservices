@@ -14,7 +14,10 @@ public class ApplicationUserToUserDTOMappingProfile : Profile
             .ForMember(des => des.UserID, opt => opt.MapFrom(src => src.UserID))
             .ForMember(des => des.Email, opt => opt.MapFrom(src => src.Email))
             .ForMember(des => des.Name, opt => opt.MapFrom(src => src.Name))
-            .ForMember(des => des.Gender, opt => opt.MapFrom(src => src.Gender));
+            .ForMember(des => des.Gender, opt => opt.MapFrom(src => src.Gender))
+            .ForMember(dest => dest.RefreshToken, opt => opt.MapFrom(src => src.RefreshToken))
+            .ForMember(dest => dest.RefreshTokenExpiryTime, opt => opt.MapFrom(src => src.RefreshTokenExpiryTime));
+
 
 
     }
