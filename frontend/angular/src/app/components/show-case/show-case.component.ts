@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductsService } from '../../services/products.service';
-import { ProductResponse } from '../../models/product-response';
+import { Product } from '../../models/product.model'; 
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatCardModule } from '@angular/material/card';
@@ -17,36 +17,41 @@ import { CartItem } from '../../models/cart-item';
   templateUrl: './show-case.component.html',
   styleUrl: './show-case.component.css'
 })
+
 export class ShowCaseComponent {
-  products: ProductResponse[] = [];
+  products: Product[] = []; 
 
   constructor(private productsService: ProductsService, public usersService: UsersService, private cartService: CartService, private router: Router) {
   }
 
   ngOnInit(): void {
     this.productsService.getProducts().subscribe({
-      next: (response: ProductResponse[]) => {
+      next: (response: Product[]) => { 
         this.products = response;
+        console.log('Products with images:', this.products); 
       },
-
       error: (err) => {
         console.log(err);
       }
     });
   }
 
-  addToCart(product: ProductResponse): void
-  {
+  addToCart(product: Product): void {
     var cartItem: CartItem = {
-      productID: product.productID,
-      productName: product.productName,
+      productID: product.id, 
+      productName: product.name, 
       unitPrice: product.unitPrice,
       quantity: 1,
-      category: product.category
+      category: product.category,
+      imgUrl: product.imgUrl
     };
 
     this.cartService.addCartItem(cartItem);
-
     this.router.navigate(["/cart"]);
+  }
+
+  // Add this method to handle image loading errors
+  handleImageError(event: any): void {
+      event.target.src = 'assets/placeholder.jpg';
   }
 }

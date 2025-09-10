@@ -1,4 +1,4 @@
-import { Injectable, booleanAttribute } from '@angular/core';
+import { Injectable } from '@angular/core';
 import { HttpClient } from '@angular/common/http';
 import { environment } from '../../environment';
 import { CartItem } from '../models/cart-item';
@@ -8,87 +8,99 @@ import { NewOrderRequest } from '../models/new-order-request';
 import { UsersService } from './users.service';
 
 @Injectable({
-    providedIn: 'root',
+  providedIn: 'root',
 })
 export class CartService {
-    private ordersAPIURL: string = environment.ordersAPIURL;
-    private cart: CartItem[] = [];
+  private ordersAPIURL: string = environment.ordersAPIURL;
+  private cart: CartItem[] = [];
+  private storageKey = 'cart';
 
-    constructor(private http: HttpClient, private usersService: UsersService) {
+  constructor(private http: HttpClient, private usersService: UsersService) {
+    this.loadCartFromStorage();
+  }
+
+  private loadCartFromStorage(): void {
+    try {
+      const savedCart = localStorage.getItem(this.storageKey);
+      if (savedCart) {
+        this.cart = JSON.parse(savedCart);
+      }
+    } catch (error) {
+      console.error('Error loading cart from storage:', error);
+      this.cart = [];
     }
+  }
 
-    addCartItem(cartItem: CartItem): void {
-        var isFound: boolean = false;
-        this.cart = this.cart.map(item => {
-            //console.log(item.productID, cartItem.productID, item.productID == cartItem.productID);
-            if (item.productID == cartItem.productID) {
-                item.quantity++;
-                isFound = true;
-            }
-            return item;
-        });
-
-        //console.log(cartItem, isFound);
-        if (!isFound) {
-            cartItem.quantity = 1;
-            this.cart.push(cartItem);
-        }
+  private saveCartToStorage(): void {
+    try {
+      localStorage.setItem(this.storageKey, JSON.stringify(this.cart));
+    } catch (error) {
+      console.error('Error saving cart to storage:', error);
     }
+  }
 
-    removeCartItem(productID: string): void {
-        var shouldRemoveItem: boolean = false;
-
-        //console.log(this.cart, productID);
-
-        this.cart = this.cart.map(item => {
-            if (item.productID == productID) {
-                if (item.quantity > 1)
-                    item.quantity--;
-                else
-                    shouldRemoveItem = true;
-            }
-            return item;
-        });
-
-        //console.log(this.cart, productID, shouldRemoveItem);
-
-        if (shouldRemoveItem) {
-            this.cart = this.cart.filter(item => {
-                return item.productID != productID;
-            })
-        }
+  addCartItem(cartItem: CartItem): void {
+    const existingItem = this.cart.find(item => item.productID === cartItem.productID);
+    if (existingItem) {
+      existingItem.quantity += cartItem.quantity || 1;
+    } else {
+      this.cart.push({ ...cartItem, quantity: cartItem.quantity || 1 });
     }
+    this.saveCartToStorage();
+  }
 
-    clearCartItems(): void {
-        this.cart = [];
+  incrementQuantity(productID: string): void {
+    const item = this.cart.find(i => i.productID === productID);
+    if (item) {
+      item.quantity++;
+      this.saveCartToStorage();
     }
+  }
 
-    getCartItems(): CartItem[] {
-        return this.cart;
+  decrementQuantity(productID: string): void {
+    const item = this.cart.find(i => i.productID === productID);
+    if (item && item.quantity > 1) {
+      item.quantity--;
+      this.saveCartToStorage();
     }
+  }
 
-    newOrder(): Observable<OrderResponse> {
-        var newOrderRequest: NewOrderRequest = {
-            userID: this.usersService.authResponse?.userID!,
-            orderDate: new Date(),
-            orderItems: []
-        };
-        this.cart.forEach(cartItem => {
-            newOrderRequest.orderItems.push({
-                productID: cartItem.productID,
-                unitPrice: cartItem.unitPrice,
-                quantity: cartItem.quantity
-            });
-        });
+  removeItemCompletely(productID: string): void {
+    this.cart = this.cart.filter(item => item.productID !== productID);
+    this.saveCartToStorage();
+  }
 
-        return this.http.post<OrderResponse>(`${this.ordersAPIURL}`, newOrderRequest);
-    }
+  clearCartItems(): void {
+    this.cart = [];
+    this.saveCartToStorage();
+  }
 
-    getOrdersByUserID(userID: string): Observable<OrderResponse[]> {
-        return this.http.get<OrderResponse[]>(`${this.ordersAPIURL}search/userid/${userID}`);
-    }
+  getCartItems(): CartItem[] {
+    return [...this.cart];
+  }
 
-    getOrders(): Observable<OrderResponse[]> {
-        return this.http.get<OrderResponse[]>(`${this.ordersAPIURL}`);
-    }
+  newOrder(): Observable<OrderResponse> {
+    const newOrderRequest: NewOrderRequest = {
+      userID: this.usersService.authResponse?.userID || '',
+      orderDate: new Date(),
+      orderItems: this.cart.map(cartItem => ({
+        productID: cartItem.productID,
+        productName: cartItem.productName,
+        unitPrice: cartItem.unitPrice,
+        quantity: cartItem.quantity,
+        category: cartItem.category,
+        imgUrl: cartItem.imgUrl || ''
+      }))
+    };
+
+    return this.http.post<OrderResponse>(`${this.ordersAPIURL}`, newOrderRequest);
+  }
+
+  getOrders(): Observable<OrderResponse[]> {
+    return this.http.get<OrderResponse[]>(`${this.ordersAPIURL}`);
+  }
+
+  getOrdersByUserID(userID: string): Observable<OrderResponse[]> {
+    return this.http.get<OrderResponse[]>(`${this.ordersAPIURL}search/userid/${userID}`);
+  }
 }

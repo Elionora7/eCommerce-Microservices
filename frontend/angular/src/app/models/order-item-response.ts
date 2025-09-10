@@ -5,4 +5,5 @@ export interface OrderItemResponse {
     totalPrice: number;
     productName: string;
     category: string;
+    imgUrl?: string;
 }

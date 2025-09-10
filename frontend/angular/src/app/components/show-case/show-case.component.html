@@ -1,9 +1,15 @@
 <h3 class="page-header">Products Show Case</h3>
 <div class="flex flex-row flex-wrap flex-justify-content">
     <mat-card class="product flex-item" *ngFor="let product of products">
+        <!-- Add this image element -->
+        <img mat-card-image 
+             [src]="product.imgUrl || 'assets/placeholder.jpg'" 
+             [alt]="product.name"
+             (error)="handleImageError($event)">
+
         <mat-card-header>
             <mat-card-subtitle>{{product.category}}</mat-card-subtitle>
-            <mat-card-title>{{product.productName}}</mat-card-title>
+            <mat-card-title>{{product.name}}</mat-card-title>
         </mat-card-header>
 
         <mat-card-content class="mt">

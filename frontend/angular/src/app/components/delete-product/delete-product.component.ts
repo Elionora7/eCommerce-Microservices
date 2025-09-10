@@ -9,7 +9,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { ProductsService } from '../../services/products.service';
-import { ProductResponse } from '../../models/product-response';
+import { Product } from '../../models/product.model';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router, RouterModule } from '@angular/router';
 import { UsersService } from '../../services/users.service';
@@ -36,19 +36,18 @@ export class DeleteProductComponent {
 
   ngOnInit(): void {
     this.activatedRoute.params.subscribe(params => {
-      var productID = params['productID']; // Replace with your actual parameter name
+      var productID = params['productID'];
 
       this.productsService.getProductByProductID(productID).subscribe({
-        next: (response: ProductResponse) => {
+        next: (response: Product) => {
           this.deleteProductForm.setValue({
-            productID: response.productID,
-            productName: response.productName,
+            productID: response.id, 
+            productName: response.name, 
             category: response.category,
             unitPrice: response.unitPrice,
-            quantityInStock: response.quantityInStock
+            quantityInStock: response.quantity 
           });
         },
-
         error: (err) => {
           console.log(err);
         }

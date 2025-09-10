@@ -12,6 +12,7 @@ import { MatOptionModule } from '@angular/material/core';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from "@angular/material/select";
+import { AuthService } from '../../services/auth.service'; // Import AuthService
 
 @Component({
   selector: 'app-register',
@@ -23,9 +24,14 @@ import { MatSelectModule } from "@angular/material/select";
 export class RegisterComponent {
   registerForm: FormGroup;
 
-  constructor(private fb: FormBuilder, private usersService: UsersService, private router: Router) {
+  constructor(
+    private fb: FormBuilder, 
+    private usersService: UsersService, 
+    private authService: AuthService, 
+    private router: Router
+  ) {
     this.registerForm = this.fb.group({
-      PersonName: ['', Validators.required],
+      Name: ['', Validators.required],
       Email: ['', [Validators.required, Validators.email]],
       Password: ['', [Validators.required, Validators.minLength(3)]],
       Gender: [''],
@@ -37,7 +43,8 @@ export class RegisterComponent {
       const user = this.registerForm.value;
       this.usersService.register(user).subscribe({
         next: (response: AuthenticationResponse) => {
-          this.usersService.setAuthStatus(response, response.token, false, response.personName);
+          // Use AuthService instead of UsersService for authentication
+          this.authService.setAuthData(response, response.token);
           this.router.navigate(['products', 'showcase']);
         },
         error: (error: any) => {
@@ -47,23 +54,19 @@ export class RegisterComponent {
     }
   }
 
-  get emailFormControl(): FormControl
-  {
+  get emailFormControl(): FormControl {
     return this.registerForm.get('Email') as FormControl;
   }
 
-  get passwordFormControl(): FormControl
-  {
+  get passwordFormControl(): FormControl {
     return this.registerForm.get('Password') as FormControl;
   }
 
-  get personNameFormControl(): FormControl
-  {
-    return this.registerForm.get('PersonName') as FormControl;
+  get nameFormControl(): FormControl {
+    return this.registerForm.get('Name') as FormControl;
   }
 
-  get genderFormControl(): FormControl
-  {
+  get genderFormControl(): FormControl {
     return this.registerForm.get('Gender') as FormControl;
   }
 }

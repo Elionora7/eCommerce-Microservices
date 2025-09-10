@@ -2,12 +2,12 @@ import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { FormBuilder, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { AuthenticationResponse } from '../../models/authentication-response';
-import { UsersService } from '../../services/users.service';
 import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatCardModule } from '@angular/material/card';
 import { MatButtonModule } from '@angular/material/button';
 import { Router } from '@angular/router';
+import { AuthService } from '../../services/auth.service'; 
 
 @Component({
   selector: 'app-login',
@@ -19,7 +19,11 @@ import { Router } from '@angular/router';
 export class LoginComponent {
   loginForm: FormGroup;
 
-  constructor(private fb: FormBuilder, private usersService: UsersService, private router: Router) {
+  constructor(
+    private fb: FormBuilder, 
+    private authService: AuthService, 
+    private router: Router
+  ) {
     this.loginForm = this.fb.group({
       Email: ['', [Validators.required, Validators.email]],
       Password: ['', Validators.required],
@@ -29,16 +33,11 @@ export class LoginComponent {
   login(): void {
     if (this.loginForm.valid) {
       const { Email, Password } = this.loginForm.value;
-      this.usersService.login(Email, Password).subscribe({
+      this.authService.login({ email: Email, password: Password }).subscribe({
         next: (response: AuthenticationResponse) => {
-          if (response.userID == "admin_id") {
-            //admin user
-            this.usersService.setAuthStatus(response, response.token, true, response.personName);
+          if (response.userID === 'admin_id') {
             this.router.navigate(['admin', 'products']);
-          }
-          else {
-            //normal user
-            this.usersService.setAuthStatus(response, response.token, false, response.personName);
+          } else {
             this.router.navigate(['products', 'showcase']);
           }
         },

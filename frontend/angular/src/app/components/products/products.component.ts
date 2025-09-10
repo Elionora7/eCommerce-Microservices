@@ -1,6 +1,6 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
-import { ProductResponse } from '../../models/product-response';
+import { Product } from '../../models/product.model';
 import { ProductsService } from '../../services/products.service';
 import { UsersService } from '../../services/users.service';
 import { MatButtonModule } from '@angular/material/button';
@@ -9,40 +9,68 @@ import { MatCardModule } from '@angular/material/card';
 import { Router, RouterModule } from '@angular/router';
 import { MatTableModule } from '@angular/material/table';
 import { MatIconModule } from '@angular/material/icon';
+import { MatProgressSpinnerModule } from '@angular/material/progress-spinner';
+import { MatTooltipModule } from '@angular/material/tooltip';
 
 @Component({
   selector: 'app-products',
   standalone: true,
-  imports: [CommonModule, MatCardModule, MatDividerModule, MatButtonModule, RouterModule, MatTableModule, MatIconModule],
+  imports: [
+    CommonModule, 
+    MatCardModule, 
+    MatDividerModule, 
+    MatButtonModule, 
+    RouterModule, 
+    MatTableModule, 
+    MatIconModule,
+    MatProgressSpinnerModule,
+    MatTooltipModule
+  ],
   templateUrl: './products.component.html',
   styleUrl: './products.component.css'
 })
 export class ProductsComponent {
-  products: ProductResponse[] = [];
-  displayedColumns: string[] = ['productName', 'category', 'unitPrice', 'quantityInStock', 'actions'];
+  products: Product[] = []; 
+  displayedColumns: string[] = ['name', 'category', 'unitPrice', 'quantity', 'actions']; 
+  isLoading: boolean = true;
 
-  constructor(private productsService: ProductsService, public usersService: UsersService, private router: Router) {
-  }
+  constructor(
+    private productsService: ProductsService, 
+    public usersService: UsersService, 
+    private router: Router
+  ) {}
 
   ngOnInit(): void {
-    this.productsService.getProducts().subscribe({
-      next: (response: ProductResponse[]) => {
-        this.products = response;
-      },
+    this.loadProducts();
+  }
 
+  loadProducts(): void {
+    this.isLoading = true;
+    this.productsService.getProducts().subscribe({
+      next: (response: Product[]) => { 
+        this.products = response;
+        this.isLoading = false;
+      },
       error: (err) => {
-        console.log(err);
+        console.error('Error loading products:', err);
+        this.isLoading = false;
       }
     });
   }
 
-  edit(product : ProductResponse) : void
-  {
-    this.router.navigate(['/products', 'edit', product.productID]);
+  edit(product: Product): void { 
+    this.router.navigate(['/products', 'edit', product.id]);
   }
 
-  delete(product : ProductResponse) : void
-  {
-    this.router.navigate(['/products', 'delete', product.productID]);
+  delete(product: Product): void { 
+    this.router.navigate(['/products', 'delete', product.id]); 
+  }
+
+  viewDetails(product: Product): void {
+    this.router.navigate(['/products', 'details', product.id]);
+  }
+
+  handleImageError(event: any): void {
+      event.target.src = 'assets/placeholder.jpg';
   }
 }

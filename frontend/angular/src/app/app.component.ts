@@ -9,6 +9,7 @@ import { MatToolbarModule } from "@angular/material/toolbar";
 import { RouterModule } from "@angular/router";
 import { UsersService } from './services/users.service';
 import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
+import { AuthService } from './services/auth.service';
 
 @Component({
   selector: 'app-root',
@@ -20,7 +21,11 @@ import { FormBuilder, FormGroup, ReactiveFormsModule } from '@angular/forms';
 export class AppComponent {
   searchForm: FormGroup;
 
-  constructor(public usersService: UsersService, private router: Router, private fb: FormBuilder) {
+  constructor(public usersService: UsersService,
+     private router: Router,
+     private authService: AuthService, 
+     private fb: FormBuilder) {
+      
     this.searchForm = this.fb.group({
       searchStr: ['', []]
     });
@@ -28,7 +33,7 @@ export class AppComponent {
 
   logout()
   {
-    this.usersService.logout();
+    this.authService.logout();
     this.router.navigate(['products', 'showcase']);
   }
 

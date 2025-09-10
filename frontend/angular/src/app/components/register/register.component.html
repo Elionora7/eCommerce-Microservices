@@ -8,8 +8,8 @@
       <form [formGroup]="registerForm" (ngSubmit)="register()">
         <mat-form-field class="w-100">
           <mat-label>Name</mat-label>
-          <input matInput placeholder="Name" formControlName="PersonName" />
-          <mat-error *ngIf="personNameFormControl.hasError('required')">Name is required</mat-error>
+          <input matInput placeholder="Name" formControlName="Name" />
+          <mat-error *ngIf="nameFormControl.hasError('required')">Name is required</mat-error>
         </mat-form-field>
 
         <mat-form-field class="w-100">

@@ -12,7 +12,7 @@ import { MatFormFieldModule } from '@angular/material/form-field';
 import { MatInputModule } from '@angular/material/input';
 import { MatSelectModule } from '@angular/material/select';
 import { ProductsService } from '../../services/products.service';
-import { ProductResponse } from '../../models/product-response';
+import { Product } from '../../models/product.model'; 
 
 @Component({
   selector: 'app-edit-product',
@@ -36,19 +36,18 @@ export class EditProductComponent {
 
   ngOnInit(): void {
     this.activatedRoute.params.subscribe(params => {
-      var productID = params['productID']; // Replace with your actual parameter name
+      var productID = params['productID'];
 
       this.productsService.getProductByProductID(productID).subscribe({
-        next: (response: ProductResponse) => {
+        next: (response: Product) => {
           this.editProductForm.setValue({
-            productID: response.productID,
-            productName: response.productName,
+            productID: response.id, 
+            productName: response.name,
             category: response.category,
             unitPrice: response.unitPrice,
-            quantityInStock: response.quantityInStock
+            quantityInStock: response.quantity 
           });
         },
-
         error: (err) => {
           console.log(err);
         }
@@ -60,7 +59,7 @@ export class EditProductComponent {
     if (this.editProductForm.valid) {
       const editProduct = this.editProductForm.value;
       this.productsService.updateProduct(editProduct).subscribe({
-        next: (response: ProductResponse) => {
+        next: (response: any) => { // CHANGE TO any
           if (response)
             this.router.navigate(['admin', 'products']);
         },

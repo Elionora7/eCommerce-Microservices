@@ -21,7 +21,7 @@ import { OrderItemResponse } from '../../models/order-item-response';
 })
 export class OrdersComponent {
   orders: OrderResponse[] = [];
-  displayedColumns = ['productName', 'unitPrice', 'quantity', 'itemTotal'];
+  displayedColumns = ['imgUrl','productName', 'unitPrice', 'quantity', 'itemTotal'];
   cartItemsDataSource: MatTableDataSource<CartItem>[] = [];
   isLoaded: boolean = false;
 
@@ -46,7 +46,8 @@ export class OrdersComponent {
                 productName: orderItem.productName,
                 unitPrice: orderItem.unitPrice,
                 quantity: orderItem.quantity,
-                category: orderItem.category
+                category: orderItem.category,
+                imgUrl:orderItem.imgUrl
               };
 
               //console.log(cartItem);

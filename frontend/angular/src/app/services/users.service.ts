@@ -4,25 +4,36 @@ import { Observable, of } from 'rxjs';
 import { AuthenticationResponse } from '../models/authentication-response';
 import { Register } from '../models/register';
 import { environment } from '../../environment';
+import { AuthService } from './auth.service'; // Import AuthService
 
 @Injectable({
   providedIn: 'root',
 })
 export class UsersService {
   private usersAPIURL: string = environment.usersAPIURL;
-  public isAuthenticated: boolean = false;
-  public isAdmin: boolean = false;
-  public currentUserName: string | null = "";
-  public authResponse: AuthenticationResponse | null = null;
 
-  constructor(private http: HttpClient) {
-    // Check local storage for authentication status on application startup
-    this.isAuthenticated = !!localStorage.getItem('authToken');
-    const isAdminValue = localStorage.getItem('isAdmin');
-    this.isAdmin = isAdminValue !== null && isAdminValue !== undefined && isAdminValue.toLowerCase() === 'true';
-    this.currentUserName = localStorage.getItem("currentUserName");
-    if (localStorage.getItem("authResponse"))
-      this.authResponse = JSON.parse(localStorage.getItem("authResponse")!);
+  // Remove all authentication properties and use AuthService instead
+  constructor(
+    private http: HttpClient,
+    private authService: AuthService // Inject AuthService
+  ) {}
+
+  // Make these getters that read from AuthService
+  get isAuthenticated(): boolean {
+    return this.authService.isAuthenticated.value;
+  }
+
+  get isAdmin(): boolean {
+    return this.authService.isAdmin.value;
+  }
+
+  get currentUserName(): string | null {
+    return this.authService.currentUserName.value;
+  }
+
+  get authResponse(): AuthenticationResponse | null {
+    const authResponseStr = localStorage.getItem('authResponse');
+    return authResponseStr ? JSON.parse(authResponseStr) : null;
   }
 
   register(register: Register): Observable<AuthenticationResponse> {
@@ -30,42 +41,19 @@ export class UsersService {
   }
 
   login(email: string, password: string): Observable<AuthenticationResponse> {
-    // Check if the provided email and password match the admin user
     if (email === 'admin@example.com' && password === 'admin') {
-      // If it's the admin user, return a custom Observable
       const adminUser: AuthenticationResponse = {
         userID: 'admin_id',
-        personName: 'Admin',
+        name: 'Admin',
         email: 'admin@example.com',
-        gender: 'male', // Add the appropriate gender for the admin user
+        gender: 'male',
         token: 'admin_token',
         success: true
       };
-
       return of(adminUser);
     } else {
       return this.http.post<AuthenticationResponse>(`${this.usersAPIURL}auth/login`, { email, password });
     }
   }
 
-  
-  setAuthStatus(authResponse: AuthenticationResponse, token: string, isAdmin: boolean, currentUserName: string): void {
-    this.isAuthenticated = true;
-    this.isAdmin = isAdmin;
-    localStorage.setItem('authToken', token);
-    localStorage.setItem('isAdmin', isAdmin.toString());
-    localStorage.setItem('currentUserName', currentUserName);
-    localStorage.setItem('authResponse', JSON.stringify(authResponse));
-    this.currentUserName = currentUserName;
-    this.authResponse = authResponse;
-  }
-
-
-  logout(): void {
-    this.isAuthenticated = false;
-    localStorage.removeItem('authToken');
-    localStorage.removeItem('isAdmin');
-    localStorage.removeItem('currentUserName');
-    this.authResponse = null;
-  }
 }

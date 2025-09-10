@@ -1,7 +1,7 @@
 import { Component } from '@angular/core';
 import { CommonModule } from '@angular/common';
 import { ProductsService } from '../../services/products.service';
-import { ProductResponse } from '../../models/product-response';
+import { Product } from '../../models/product.model'; 
 import { MatButtonModule } from '@angular/material/button';
 import { MatDividerModule } from '@angular/material/divider';
 import { MatCardModule } from '@angular/material/card';
@@ -16,23 +16,21 @@ import { UsersService } from '../../services/users.service';
   styleUrl: './search.component.css'
 })
 export class SearchComponent {
-  products: ProductResponse[] = [];
+  products: Product[] = []; 
 
   constructor(private productsService: ProductsService, private activatedRoute: ActivatedRoute, public usersService: UsersService) {
   }
 
   ngOnInit(): void {
     this.activatedRoute.params.subscribe(params => {
-      var searchStr = params['str?']; // Replace with your actual parameter name
-      //console.log(searchStr);
+      var searchStr = params['str?'];
       if (!searchStr)
         searchStr = "";
 
       this.productsService.searchProducts(searchStr).subscribe({
-        next: (response: ProductResponse[]) => {
+        next: (response: Product[]) => { 
           this.products = response;
         },
-  
         error: (err) => {
           console.log(err);
         }

@@ -5,7 +5,7 @@ export interface OrderResponse {
     userID: string;
     orderDate: Date;
     totalBill: number;
-    userPersonName: string;
+    name: string;
     email: string;
     orderItems: OrderItemResponse[];
 }

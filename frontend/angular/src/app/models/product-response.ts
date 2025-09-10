@@ -4,4 +4,5 @@ export interface ProductResponse {
     category: string;
     unitPrice: number;
     quantityInStock: number;
+    imgUrl?: string; 
 }
