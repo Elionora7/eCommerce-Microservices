@@ -9,7 +9,7 @@ using Polly.CircuitBreaker;
 using Polly.Timeout;
 
 namespace eCommerce.OrdersMicroservice.BusinessLogicLayer.HttpClients;
-public class ProductMicroserviceClient
+public class ProductMicroserviceClient : IProductMicroserviceClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<ProductMicroserviceClient> _logger;
@@ -28,6 +28,7 @@ public class ProductMicroserviceClient
         _httpContextAccessor = httpContextAccessor;
     }
 
+
     public async Task<ProductDTO?> GetProductByProductId(Guid productId)
     {
         try
@@ -36,63 +37,56 @@ public class ProductMicroserviceClient
             string? cacheValue = await _distributedCache.GetStringAsync(cacheKey);
             if (cacheValue != null)
             {
-                ProductDTO? productCache = JsonSerializer.Deserialize<ProductDTO?>(cacheValue);
-                return productCache;
+                return JsonSerializer.Deserialize<ProductDTO?>(cacheValue);
             }
 
-            // Create request with authorization header
-            var request = new HttpRequestMessage(HttpMethod.Get, $"/gateway/products/search/product-id/{productId}");
+            // Use the correct path that matches Ocelot's upstream template
+            var requestUri = $"search/product-id/{productId}";
+            var request = new HttpRequestMessage(HttpMethod.Get, requestUri);
 
-            // Forward the authorization header
-            var authorizationHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"];
-            if (!string.IsNullOrEmpty(authorizationHeader))
+            _logger.LogInformation("Sending request to {Uri}",
+            _httpClient.BaseAddress != null ? new Uri(_httpClient.BaseAddress, requestUri).ToString()
+                  : $"BaseAddress is null, requestUri: {requestUri}");
+
+            _logger.LogInformation("BaseAddress: {BaseAddress}", _httpClient.BaseAddress);
+
+            // Forward the Authorization header if present
+            var authHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"];
+            if (!string.IsNullOrEmpty(authHeader))
             {
-                request.Headers.Add("Authorization", authorizationHeader.ToString());
+                request.Headers.Add("Authorization", authHeader.ToString());
             }
 
-            HttpResponseMessage response = await _httpClient.SendAsync(request);
+            // Send request
+            var response = await _httpClient.SendAsync(request);
 
-            // ..
             if (!response.IsSuccessStatusCode)
             {
-                if (response.StatusCode == System.Net.HttpStatusCode.ServiceUnavailable)
+                switch (response.StatusCode)
                 {
-                    ProductDTO? productFallback = await response.Content.ReadFromJsonAsync<ProductDTO>();
-                    if (productFallback == null)
-                    {
-                        _logger.LogWarning("Fallback policy was not implemented for product {ProductId}", productId);
+                    case System.Net.HttpStatusCode.NotFound:
                         return null;
-                    }
-                    return productFallback;
-                }
-                else if (response.StatusCode == System.Net.HttpStatusCode.NotFound)
-                {
-                    return null;
-                }
-                else if (response.StatusCode == System.Net.HttpStatusCode.BadRequest)
-                {
-                    throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
-                }
-                else
-                {
-                    _logger.LogWarning("HTTP request failed with status code {StatusCode} for product {ProductId}", response.StatusCode, productId);
-                    return null;
+                    case System.Net.HttpStatusCode.BadRequest:
+                        throw new HttpRequestException("Bad request", null, System.Net.HttpStatusCode.BadRequest);
+                    case System.Net.HttpStatusCode.ServiceUnavailable:
+                        var fallback = await response.Content.ReadFromJsonAsync<ProductDTO>();
+                        return fallback;
+                    default:
+                        _logger.LogWarning("HTTP request failed with status code {StatusCode} for product {ProductId}", response.StatusCode, productId);
+                        return null;
                 }
             }
 
-            ProductDTO? product = await response.Content.ReadFromJsonAsync<ProductDTO>();
-            if (product == null)
-            {
-                throw new ArgumentException("Invalid product Id!");
-            }
+            var product = await response.Content.ReadFromJsonAsync<ProductDTO>();
+            if (product == null) throw new ArgumentException("Invalid product Id!");
 
-            // Write to cache
-            string productJson = JsonSerializer.Serialize(product);
-            DistributedCacheEntryOptions cacheOptions = new DistributedCacheEntryOptions()
+            // Cache the result
+            var productJson = JsonSerializer.Serialize(product);
+            var cacheOptions = new DistributedCacheEntryOptions()
                 .SetAbsoluteExpiration(TimeSpan.FromSeconds(400))
                 .SetSlidingExpiration(TimeSpan.FromSeconds(100));
-
             await _distributedCache.SetStringAsync(cacheKey, productJson, cacheOptions);
+
             return product;
         }
         catch (BrokenCircuitException ex)
@@ -107,7 +101,7 @@ public class ProductMicroserviceClient
         }
         catch (BulkheadRejectedException ex)
         {
-            _logger.LogError(ex, "Bulkhead isolation is blocking the request since the request queue is full for product {ProductId}", productId);
+            _logger.LogError(ex, "Bulkhead isolation blocking request for product {ProductId}", productId);
             return null;
         }
         catch (HttpRequestException ex)
@@ -121,4 +115,5 @@ public class ProductMicroserviceClient
             return null;
         }
     }
+
 }

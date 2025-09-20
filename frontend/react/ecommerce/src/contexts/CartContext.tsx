@@ -43,25 +43,35 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       if (existingItem) {
         const updatedItems = state.cart.items.map(item =>
           item.productID === action.payload.productID
-            ? { ...item, quantity: item.quantity + action.payload.quantity }
+            ? { 
+                ...item, 
+                quantity: item.quantity + action.payload.quantity,
+                totalPrice: item.unitPrice * (item.quantity + action.payload.quantity)  // ← Recalculate total
+              }
             : item
         );
         return {
           ...state,
           cart: {
             items: updatedItems,
-            total: updatedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0),
+            total: updatedItems.reduce((sum, item) => sum + item.totalPrice, 0),
             itemCount: updatedItems.reduce((sum, item) => sum + item.quantity, 0)
           }
         };
       }
       
-      const newItems = [...state.cart.items, action.payload];
+      // For new items, make sure totalPrice is calculated
+      const newItem = {
+        ...action.payload,
+        totalPrice: action.payload.unitPrice * action.payload.quantity  
+      };
+      
+      const newItems = [...state.cart.items, newItem];
       return {
         ...state,
         cart: {
           items: newItems,
-          total: newItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0),
+          total: newItems.reduce((sum, item) => sum + item.totalPrice, 0),
           itemCount: newItems.reduce((sum, item) => sum + item.quantity, 0)
         }
       };
@@ -71,7 +81,11 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
       const updatedItems = state.cart.items
         .map(item =>
           item.productID === action.payload.productID
-            ? { ...item, quantity: action.payload.quantity }
+            ? { 
+                ...item, 
+                quantity: action.payload.quantity,
+                totalPrice: item.unitPrice * action.payload.quantity 
+              }
             : item
         )
         .filter(item => item.quantity > 0);
@@ -80,7 +94,7 @@ const cartReducer = (state: CartState, action: CartAction): CartState => {
         ...state,
         cart: {
           items: updatedItems,
-          total: updatedItems.reduce((sum, item) => sum + (item.unitPrice * item.quantity), 0),
+          total: updatedItems.reduce((sum, item) => sum + item.totalPrice, 0),
           itemCount: updatedItems.reduce((sum, item) => sum + item.quantity, 0)
         }
       };

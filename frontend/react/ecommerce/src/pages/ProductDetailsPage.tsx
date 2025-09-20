@@ -14,22 +14,25 @@ export default function ProductDetailsPage() {
   const cartItem = state.cart.items.find(item => item.productID === product?.id);
   const quantityInCart = cartItem?.quantity || 0;
 
-  const handleAddToCart = () => {
-    if (!product) return;
-    
-    dispatch({
-      type: 'ADD_ITEM',
-      payload: {
-        productID: product.id,
-        name: product.name,
-        unitPrice: product.unitPrice,
-        quantity: 1,
-        totalPrice: product.unitPrice,
-        imgUrl: product.imgUrl,
-        maxStock: product.quantity
-      }
-    });
-  };
+const handleAddToCart = () => {
+  if (!product) return;
+  
+  const quantityToAdd = 1;
+  const totalPriceForItems = product.unitPrice * quantityToAdd;
+  
+  dispatch({
+    type: 'ADD_ITEM',
+    payload: {
+      productID: product.id,
+      name: product.name,
+      unitPrice: product.unitPrice,
+      quantity: quantityToAdd,
+      totalPrice: totalPriceForItems,  
+      imgUrl: product.imgUrl,
+      maxStock: product.quantity
+    }
+  });
+};
 
   const handleIncreaseQuantity = () => {
     if (!product) return;

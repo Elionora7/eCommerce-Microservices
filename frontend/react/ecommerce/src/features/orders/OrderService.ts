@@ -51,21 +51,21 @@ export class OrderService {
   static validateOrder(orderData: OrderAddRequest): string[] {
     const errors: string[] = [];
 
-    if (!orderData.userID) {
+    if (!orderData.UserID) {
       errors.push('User ID is required');
     }
 
-    if (!orderData.orderItems || orderData.orderItems.length === 0) {
+    if (!orderData.OrderItems || orderData.OrderItems.length === 0) {
       errors.push('At least one order item is required');
     } else {
-      orderData.orderItems.forEach((item, index) => {
-        if (!item.productID) {
+      orderData.OrderItems.forEach((item, index) => {
+        if (!item.ProductID) {
           errors.push(`Product ID is required for item ${index + 1}`);
         }
-        if (item.quantity <= 0) {
+        if (item.Quantity <= 0) {
           errors.push(`Quantity must be greater than 0 for item ${index + 1}`);
         }
-        if (item.unitPrice < 0) {
+        if (item.UnitPrice < 0) {
           errors.push(`Unit price cannot be negative for item ${index + 1}`);
         }
       });

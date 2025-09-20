@@ -2,6 +2,7 @@ import { useCart } from '@/contexts/CartContext';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { useCreateOrder } from '@/features/orders/OrderHooks';
 import { useNavigate } from 'react-router-dom';
+import { productsAPI } from '@/features/products/ProductService';
 
 export default function ShoppingCart() {
   const { state, dispatch } = useCart();
@@ -31,41 +32,49 @@ export default function ShoppingCart() {
   }
 
   const handleCheckout = async () => {
-    const userId = getUserId();
-    const token = localStorage.getItem('token');
-    console.log("Retrieved userID:", userId);
-    console.log("Retrieved token:", token);
+  const userId = getUserId();
+  const token = localStorage.getItem('token');
 
-    // Check if user is properly authenticated
-    if (!token || !userId) {
-      alert('Please login to checkout');
-      navigate('/login');
-      return;
-    }
+  if (!token || !userId) {
+    alert('Please login to checkout');
+    navigate('/login');
+    return;
+  }
 
-    console.log("Proceeding with actual userid:", userId);
+  try {
+    // Build order items with correct GUIDs
+    const orderItems = await Promise.all(
+      cart.items.map(async (item) => {
+        const product = await productsAPI.getById(item.productID); // fetch correct ProductID from backend
+        if (!product?.id) {
+          throw new Error(`Product ID missing for ${item.name}`);
+        }
+
+        return {
+          ProductID: product.id, 
+          Quantity: item.quantity,
+          UnitPrice: product.unitPrice,
+          TotalPrice: item.totalPrice,
+          ImgUrl: item.imgUrl || ''
+        };
+      })
+    );
 
     const orderData = {
-      userID: userId,
-      orderDate: new Date().toISOString(),
-      orderItems: cart.items.map(item => ({
-        productID: item.productID,
-        unitPrice: item.unitPrice,
-        quantity: item.quantity,
-        totalPrice: item.totalPrice,
-        imgUrl: item.imgUrl
-      }))
+      UserID: userId,
+      OrderDate: new Date().toISOString(),
+      OrderItems: orderItems
     };
 
-    try {
-      await createOrderMutation.mutateAsync(orderData);
-      dispatch({ type: 'CLEAR_CART' });
-      alert('Order placed successfully!');
-    } catch (error) {
-      console.error('Checkout error:', error);
-      alert('Failed to place order. Please try again.');
-    }
-  };
+    await createOrderMutation.mutateAsync(orderData);
+    dispatch({ type: 'CLEAR_CART' });
+    alert('Order placed successfully!');
+  } catch (error: any) {
+    console.error('Checkout error:', error.message || error);
+    alert('Failed to place order. Please try again.');
+  }
+};
+
 
   if (!isOpen) return null;
 

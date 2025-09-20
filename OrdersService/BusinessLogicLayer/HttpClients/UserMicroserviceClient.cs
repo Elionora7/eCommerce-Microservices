@@ -10,7 +10,7 @@ using Polly.CircuitBreaker;
 using Polly.Timeout;
 
 namespace eCommerce.OrdersMicroservice.BusinessLogicLayer.HttpClients;
-public class UserMicroserviceClient
+public class UserMicroserviceClient : IUserMicroserviceClient
 {
     private readonly HttpClient _httpClient;
     private readonly ILogger<UserMicroserviceClient> _logger;
@@ -43,7 +43,7 @@ public class UserMicroserviceClient
             }
 
             // Create request with authorization header
-            var request = new HttpRequestMessage(HttpMethod.Get, $"/gateway/users/{userId}");
+            var request = new HttpRequestMessage(HttpMethod.Get, $"{userId}");
 
             // Forward the authorization header from the original request
             var authorizationHeader = _httpContextAccessor.HttpContext?.Request.Headers["Authorization"];

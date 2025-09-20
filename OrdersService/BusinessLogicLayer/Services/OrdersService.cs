@@ -19,8 +19,8 @@ public class OrdersService : IOrdersService
     private readonly IValidator<OrderItemUpdateRequest> _orderItemUpdateRequestValidator;
     private readonly IMapper _mapper;
     private readonly IOrdersRepository _ordersRepository;
-    private readonly UserMicroserviceClient _userMicroserviceClient;
-    private readonly ProductMicroserviceClient _productMicroserviceClient;
+    private readonly IUserMicroserviceClient _userMicroserviceClient;
+    private readonly IProductMicroserviceClient _productMicroserviceClient;
     private readonly ILogger<OrdersService> _logger;
 
     public OrdersService(
@@ -30,8 +30,8 @@ public class OrdersService : IOrdersService
         IValidator<OrderItemAddRequest> orderItemAddRequestValidator,
         IValidator<OrderUpdateRequest> orderUpdateRequestValidator,
         IValidator<OrderItemUpdateRequest> orderItemUpdateRequestValidator,
-        UserMicroserviceClient userMicroserviceClient,
-        ProductMicroserviceClient productMicroserviceClient,
+        IUserMicroserviceClient userMicroserviceClient,
+        IProductMicroserviceClient productMicroserviceClient,
         ILogger<OrdersService> logger)
     {
         _ordersRepository = ordersRepository ?? throw new ArgumentNullException(nameof(ordersRepository));
@@ -67,6 +67,29 @@ public class OrdersService : IOrdersService
 
         // Map & calculate
         var order = _mapper.Map<Order>(orderAddRequest);
+
+        // Comprehensive null checking
+        if (order == null)
+        {
+            throw new InvalidOperationException("Failed to map OrderAddRequest to Order entity");
+        }
+
+        // Add defensive checks for all required properties
+        order._id = order._id == Guid.Empty ? Guid.NewGuid() : order._id;
+        order.OrderID = order.OrderID == Guid.Empty ? Guid.NewGuid() : order.OrderID;
+        order.OrderItems ??= new List<OrderItem>();
+        order.UserID = orderAddRequest.UserID; // Ensure UserID is set
+        order.OrderDate = order.OrderDate == default ? DateTime.UtcNow : order.OrderDate;
+
+        // Initialize each OrderItem if needed
+        foreach (var item in order.OrderItems)
+        {
+            if (item != null)
+            {
+                item._id = item._id == Guid.Empty ? Guid.NewGuid() : item._id;
+            }
+        }
+
         CalculateTotals(order);
 
         var addedOrder = await _ordersRepository.AddOrder(order);
@@ -85,11 +108,25 @@ public class OrdersService : IOrdersService
         await ValidateRequest(_orderUpdateRequestValidator, orderUpdateRequest);
 
         var products = new List<ProductDTO>();
+
+        if (orderUpdateRequest.OrderItems == null || !orderUpdateRequest.OrderItems.Any())
+        {
+            throw new ArgumentException("Order must contain at least one item.", nameof(orderUpdateRequest.OrderItems));
+        }
+
         foreach (var item in orderUpdateRequest.OrderItems)
         {
             await ValidateRequest(_orderItemUpdateRequestValidator, item);
-            var product = await _productMicroserviceClient.GetProductByProductId(item.ProductID)
-                ?? throw new ArgumentException($"Product {item.ProductID} does not exist", nameof(item.ProductID));
+
+            if (item == null)
+                throw new ArgumentException("Order item cannot be null.", nameof(item));
+
+            var product = await _productMicroserviceClient.GetProductByProductId(item.ProductID);
+            if (product == null)
+            {
+                // Instead of NullReferenceException, throw meaningful exception
+                throw new KeyNotFoundException($"Product {item.ProductID} does not exist.");
+            }
             products.Add(product);
         }
 
@@ -97,6 +134,26 @@ public class OrdersService : IOrdersService
             ?? throw new ArgumentException("Invalid User ID", nameof(orderUpdateRequest.UserID));
 
         var order = _mapper.Map<Order>(orderUpdateRequest);
+
+        // Comprehensive null checking
+        if (order == null)
+        {
+            throw new InvalidOperationException("Failed to map OrderUpdateRequest to Order entity");
+        }
+
+        // Add defensive checks for all required properties
+        order.OrderItems ??= new List<OrderItem>();
+        order.UserID = orderUpdateRequest.UserID; 
+
+        // Initialize each OrderItem if needed
+        foreach (var item in order.OrderItems)
+        {
+            if (item != null)
+            {
+                item._id = item._id == Guid.Empty ? Guid.NewGuid() : item._id;
+            }
+        }
+
         CalculateTotals(order);
 
         var updatedOrder = await _ordersRepository.UpdateOrder(order);
@@ -138,16 +195,30 @@ public class OrdersService : IOrdersService
         return await MapAndEnrichOrders(orders);
     }
 
-    // =====================
+    // ======================
     // Private helper methods
-    // =====================
+    // =======================
     private static void CalculateTotals(Order order)
     {
-        foreach (var item in order.OrderItems)
-            item.TotalPrice = item.Quantity * item.UnitPrice;
+        if (order.OrderItems == null || !order.OrderItems.Any())
+        {
+            order.TotalBill = 0;
+            return;
+        }
 
-        order.TotalBill = order.OrderItems.Sum(i => i.TotalPrice);
+        foreach (var item in order.OrderItems)
+        {
+            if (item != null)
+            {
+                item.TotalPrice = item.Quantity * item.UnitPrice;
+            }
+        }
+
+        order.TotalBill = order.OrderItems
+            .Where(item => item != null)
+            .Sum(i => i.TotalPrice);
     }
+
 
     private static async Task ValidateRequest<T>(IValidator<T> validator, T request)
     {
@@ -225,7 +296,7 @@ public class OrdersService : IOrdersService
                 // Create a new enriched item
                 var enrichedItem = item with
                 {
-                    ProductName = product.ProductName,  // Use ProductName, not Name
+                    ProductName = product.ProductName,  
                     Category = product.Category
                 };
                 enrichedItems.Add(enrichedItem);

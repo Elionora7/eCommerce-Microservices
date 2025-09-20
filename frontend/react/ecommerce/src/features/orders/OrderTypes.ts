@@ -34,30 +34,30 @@ export interface Order {
 }
 
 export interface OrderAddRequest {
-  userID: string;
-  orderItems: {
-    productID: string;
-    unitPrice: number;
-    quantity: number;
-    totalPrice: number;
-    imgUrl: string;
+  UserID: string;
+  OrderItems: {
+    ProductID: string;
+    UnitPrice: number;
+    Quantity: number;
+    TotalPrice: number;
+    ImgUrl: string;
   }[];
-  orderDate?: string; 
+  OrderDate?: string; 
   status?: string;
 
 }
 
 export interface OrderUpdateRequest {
-  orderID: string;
-  userID: string;
-  orderItems: {
-    productID: string;
-    unitPrice: number;
-    quantity: number;
-    totalPrice: number;
-    imgUrl: string;
+  OrderID: string;
+  UserID: string;
+  OrderItems: {
+    ProductID: string;
+    UnitPrice: number;
+    Quantity: number;
+    TotalPrice: number;
+    ImgUrl: string ; 
   }[];
-  orderDate?: string; 
+  OrderDate?: string; 
   status?: string;
 }
 

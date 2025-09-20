@@ -9,6 +9,7 @@ using Microsoft.IdentityModel.Tokens;
 using System.Text;
 using DotNetEnv;
 using Microsoft.OpenApi.Models;
+using Microsoft.Extensions.Http;
 
 var builder = WebApplication.CreateBuilder(args);
 
@@ -127,25 +128,6 @@ builder.Services.AddSingleton<IUserMicroservicePolicies, UserMicroservicePolicie
 builder.Services.AddSingleton<IProductMicroservicePolicies, ProductMicroservicePolicies>();
 builder.Services.AddHttpContextAccessor();
 
-// register HTTP clients
-builder.Services.AddHttpClient<UserMicroserviceClient>((services, client) =>
-{
-    var config = services.GetRequiredService<IConfiguration>();
-    client.BaseAddress = new Uri($"http://{config["UserMicroserviceName"]}:{config["UserMicroservicePort"]}");
-})
-.AddPolicyHandler((services, _) =>
-    services.GetRequiredService<IUserMicroservicePolicies>().GetCombinedPolicy());
-
-// Update the ProductMicroserviceClient configuration
-builder.Services.AddHttpClient<ProductMicroserviceClient>((services, client) =>
-{
-    var config = services.GetRequiredService<IConfiguration>();
-    client.BaseAddress = new Uri($"http://{config["ProductMicroserviceName"]}:{config["ProductMicroservicePort"]}");
-})
-.AddPolicyHandler((services, _) =>
-    services.GetRequiredService<IProductMicroservicePolicies>().GetCombinedPolicy()) 
-.AddPolicyHandler((services, _) =>
-    services.GetRequiredService<IProductMicroservicePolicies>().GetBulkheadIsolationPolicy());
 // ========================
 // App Building
 // ========================
