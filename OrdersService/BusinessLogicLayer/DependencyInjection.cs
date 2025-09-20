@@ -31,7 +31,7 @@ public static class DependencyInjection
         services.AddTransient<IRabbitMQProductDeleteConsumer, RabbitMQProductDeleteConsumer>();
         services.AddHostedService<RabbitMQProductDeleteHostedService>();
 
-        // Configure HTTP Clients HERE
+        // Configure HTTP Clients
         ConfigureHttpClients(services, configuration);
 
         return services;
