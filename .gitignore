@@ -21,3 +21,4 @@ __ScriptsMigration/
 .env
 .env.*
 **/*.secret.yaml
+docs/*.docx

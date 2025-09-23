@@ -267,8 +267,6 @@ Elionora El Dahan
 
 •	LinkedIn: Elionora El Dahan | LinkedIn
 
-•	Email: elionora.zeineh@gmail.com
-
 \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
 
