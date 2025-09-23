@@ -8,31 +8,45 @@ const LoginPage: React.FC = () => {
   const navigate = useNavigate();
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
-
+  const [formError, setFormError] = useState('');
+  
   // Use mutation for login
   const loginMutation = useMutation<AuthResponse, Error, LoginRequest>({
-    mutationFn: authAPI.login, 
-    onSuccess: (data) => {
-      // Save tokens and user data
-      localStorage.setItem('token', data.token);
-      localStorage.setItem('refreshToken', data.refreshToken);
-      localStorage.setItem('refreshTokenExpiryTime', new Date(data.refreshTokenExpiryTime).toISOString());
-      
-      // Save user information
-      localStorage.setItem('user', JSON.stringify({
+  mutationFn: authAPI.login,
+  onSuccess: (data) => {
+    // clear any old error
+    setFormError('');
+
+    // Save tokens and user data
+    localStorage.setItem('token', data.token);
+    localStorage.setItem('refreshToken', data.refreshToken);
+    localStorage.setItem(
+      'refreshTokenExpiryTime',
+      new Date(data.refreshTokenExpiryTime).toISOString()
+    );
+
+    localStorage.setItem(
+      'user',
+      JSON.stringify({
         email: data.email,
         name: data.name,
         gender: data.gender,
-        userID: data.userID
-      }));
-      
-      // Redirect to dashboard
-      navigate('/dashboard');
-    },
-    onError: (error) => {
-      console.error('Login failed:', error.message);
-    },
-  });
+        userID: data.userID,
+      })
+    );
+
+    // Redirect to dashboard
+    navigate('/dashboard');
+  },
+  onError: (error) => {
+    // show the friendly text returned by authAPI or fallback
+    setFormError(
+      error.message || 'Login failed. Please check your credentials.'
+    );
+    console.error('Login failed:', error.message);
+  },
+});
+
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
@@ -92,14 +106,27 @@ const LoginPage: React.FC = () => {
             ) : 'Login'}
           </button>
           
-          {loginMutation.isError && (
-            <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center">
-              <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5 mr-2" viewBox="0 0 20 20" fill="currentColor">
-                <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
-              </svg>
-              {loginMutation.error.message || 'Login failed. Please check your credentials.'}
-            </div>
-          )}
+          {formError && (
+              <div className="bg-red-50 text-red-700 p-3 rounded-lg flex items-center">
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="h-5 w-5 mr-2"
+                  viewBox="0 0 20 20"
+                  fill="currentColor"
+                >
+                  <path
+                    fillRule="evenodd"
+                    d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z"
+                    clipRule="evenodd"
+                  />
+                </svg>
+                {formError}{' '}
+                <a href="/register" className="ml-1 text-blue-600 hover:underline">
+                  Register here
+                </a>
+              </div>
+            )}
+
         </form>
         
         <div className="mt-6 text-center text-sm text-gray-600">

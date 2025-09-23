@@ -2,6 +2,7 @@ import { Link } from 'react-router-dom';
 import type { Order } from '../OrderTypes';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatDateTime } from '@/utils/formatDate';
+import placeholder from '@/assets/placeholder.jpg';
 
 interface OrderCardProps {
   order: Order;
@@ -36,7 +37,7 @@ export default function OrderCard({ order }: OrderCardProps) {
                       alt= {item.productName || `Product: ${item.productID.slice(0, 8)}`}
                       className="w-10 h-10 rounded object-cover"
                       onError={(e) => {
-                        (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40';
+                        (e.target as HTMLImageElement).src = placeholder;
                       }}
                     />
                   )}

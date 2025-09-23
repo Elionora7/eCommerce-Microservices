@@ -2,6 +2,7 @@ import { useParams } from 'react-router-dom';
 import { useOrder } from '@/features/orders/OrderHooks';
 import { formatCurrency } from '@/utils/formatCurrency';
 import { formatDateTime } from '@/utils/formatDate';
+import placeholder from '@/assets/placeholder.jpg';
 
 export default function OrderDetailsPage() {
   const { id } = useParams<{ id: string }>();
@@ -240,11 +241,11 @@ function OrderItemCard({ item }: { item: any }) {
     <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
       <div className="flex items-center space-x-4">
         <img
-          src={item.imgUrl || 'https://via.placeholder.com/60'}
+          src={item.imgUrl || placeholder}
           alt={item.productName || 'Product'}
           className="w-16 h-16 rounded object-cover"
           onError={(e) => {
-            (e.target as HTMLImageElement).src = 'https://via.placeholder.com/60';
+            (e.target as HTMLImageElement).src = placeholder;
           }}
         />
         <div>

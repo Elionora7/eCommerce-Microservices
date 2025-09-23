@@ -32,7 +32,7 @@ export default function OrderCard({ order }: OrderCardProps) {
                     alt={item.productName || `Product ${item.productID.slice(0, 8)}`}
                     className="w-10 h-10 rounded object-cover"
                     onError={(e) => {
-                      (e.target as HTMLImageElement).src = 'https://via.placeholder.com/40';
+                      (e.target as HTMLImageElement).src = 'https:///40';
                     }}
                   />
                 )}

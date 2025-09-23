@@ -20,8 +20,12 @@ apiClient.interceptors.request.use((config) => {
 apiClient.interceptors.response.use(
   (response) => response,
   (error) => {
-    if (error.response?.status === 401) {
-      // Handle unauthorized - redirect to login
+    // Only redirect for other protected endpoints, not login/register
+    if (
+      error.response?.status === 401 &&
+      !error.config.url?.includes('/auth/login') &&
+      !error.config.url?.includes('/auth/register')
+    ) {
       localStorage.removeItem(import.meta.env.VITE_AUTH_TOKEN_NAME);
       localStorage.removeItem('userID');
       window.location.href = '/login';
@@ -29,5 +33,6 @@ apiClient.interceptors.response.use(
     return Promise.reject(error);
   }
 );
+
 
 export default apiClient;
