@@ -200,7 +200,10 @@ Demo Video: Screen-recorded end-to-end walkthrough of the application, showing f
 
 
 
-Azure Deployment Documentation: Step-by-step guide (with screenshots) for deploying all services and databases to Azure AKS and ACR.
+Azure Deployment Documentation: Step-by-step guide (with screenshots) for deploying all services and databases to Azure AKS and ACR: 
+📄 Full Azure Deployment Guide:
+See [`docs/Azure Deployment Documentation.docx`](https://github.com/Elionora7/eCommerce-Microservices/blob/main/docs/Azure%20Deployment%20Documentation.docx)
+
 
 \_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_\_
 
