@@ -20,3 +20,4 @@ __ScriptsMigration/
 "@ | Out-File -FilePath .gitignore -Encoding utf8
 .env
 .env.*
+**/*.secret.yaml
