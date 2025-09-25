@@ -12,9 +12,14 @@ export const authAPI = {
       return response.data;
     } catch (err: unknown) {
     
-      if (axios.isAxiosError(err) && err.response?.status === 401) {
-        throw new Error('User does not exist. Please sign up first.');
+    if (axios.isAxiosError(err) && err.response) {
+      if (err.response.status === 404) {
+        throw new Error('No account found. Please register.');
       }
+      if (err.response.status === 401) {
+        throw new Error('Invalid credentials.');
+      }
+    }
       // Re-throw any other errors
       throw err;
     }
