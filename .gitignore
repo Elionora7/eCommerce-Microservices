@@ -22,3 +22,4 @@ __ScriptsMigration/
 .env.*
 **/*.secret.yaml
 docs/*.docx
+secrets.json

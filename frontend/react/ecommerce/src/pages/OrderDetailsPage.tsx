@@ -241,7 +241,7 @@ function OrderItemCard({ item }: { item: any }) {
     <div className="flex items-center justify-between p-4 border border-gray-200 rounded-lg hover:bg-gray-50 transition-colors">
       <div className="flex items-center space-x-4">
         <img
-          src={item.imgUrl || placeholder}
+          src={item.imgUrl}
           alt={item.productName || 'Product'}
           className="w-16 h-16 rounded object-cover"
           onError={(e) => {
